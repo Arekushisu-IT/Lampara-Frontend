@@ -260,7 +260,7 @@ function renderPendingTable(pending) {
 
   pending.forEach(p => {
     const initials = p.name.substring(0, 2).toUpperCase();
-    const section = p.school || 'Unassigned'; 
+    const section = p.email || 'Unassigned'; 
     const submitted = p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A';
     
     const row = document.createElement('tr');
@@ -632,7 +632,7 @@ function renderDashboardPlayers(players) {
     const initials = p.name.substring(0, 2).toUpperCase();
     
     // ✨ Real Database Values
-    const school = p.school || 'Unassigned'; 
+    const email = p.email || 'Unassigned'; 
     const chapterText = `Ch. ${p.chapter || 1}`;
     const suspicion = p.suspicion || 0;
     const susColor = suspicion > 75 ? 'style="color:#e06060"' : 'class="gold-txt"';
@@ -644,7 +644,7 @@ function renderDashboardPlayers(players) {
         <button class="ab abr" onclick="rejectPending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">REJECT</button>
       `;
     } else {
-      actionHTML = `<button class="ab abv" onclick="openPM('${p.name}','ID-${p.id}','${school}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
+      actionHTML = `<button class="ab abv" onclick="openPM('${p.name}','ID-${p.id}','${email}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
     }
 
     const row = document.createElement('tr');
@@ -655,7 +655,7 @@ function renderDashboardPlayers(players) {
           <div><div class="pname">${p.name}</div><div class="pid">@${p.username}</div></div>
         </div>
       </td>
-      <td>${school}</td>
+      <td>${email}</td>
       <td><span class="pill ${pillCls}">${displayStatus}</span></td>
       <td>${chapterText}</td>
       <td><span class="mono-sm" ${susColor}>${suspicion} pts</span></td>
@@ -679,9 +679,9 @@ function renderPlayerRegistry(players) {
     const initials = p.name.substring(0, 2).toUpperCase();
     const progressPct = Math.min(100, Math.round((p.experience / ((p.level || 1) * 1000)) * 100)) || 0;
     
-    const school = p.school || 'Unassigned';
+    const email = p.email || 'Unassigned';
 
-    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name}','ID-${p.id}','${school}','${displayStatus}','Lvl ${p.level || 1}','0','${progressPct}%')">VIEW</button>`;
+    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name}','ID-${p.id}','${email}','${displayStatus}','Lvl ${p.level || 1}','0','${progressPct}%')">VIEW</button>`;
     
     if (p.status === 'active') {
       actionHTML += `<button class="ab absu" onclick="updatePlayerStatus(${p.id}, '${p.name.replace(/'/g, "\\'")}', 'banned', 'Suspended')">SUSPEND</button>`;
@@ -702,7 +702,7 @@ function renderPlayerRegistry(players) {
           <div><div class="pname">${p.name}</div><div class="pid">@${p.username}</div></div>
         </div>
       </td>
-      <td>${school}</td>
+      <td>${email}</td>
       <td><span class="pill ${pillCls}">${displayStatus}</span></td>
       <td>
         <div class="plbl">Lvl ${p.level || 1}</div>
@@ -898,7 +898,7 @@ function renderPlayerTable(players) {
                         </div>
                     </div>
                 </td>
-                <td>${player.school || 'Unassigned'}</td>
+                <td>${player.email || 'Unassigned'}</td>
                 <td>${getStatusBadgeHtml(player.status)}</td>
                 <td>
                     <div class="plbl">Lvl ${player.level}</div>
