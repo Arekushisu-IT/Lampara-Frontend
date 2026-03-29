@@ -451,7 +451,9 @@ document.querySelectorAll('.mov').forEach(overlay => {
   });
 });
 
-/* TOAST NOTIFICATIONS */
+/* ========================================================
+   UPDATED TOAST NOTIFICATIONS (Top Center, Slide Down)
+   ======================================================== */
 const TOAST_ICONS = { success: '⚜', error: '✕', info: '◈' };
 
 function showT(message, type = 'info') {
@@ -462,11 +464,14 @@ function showT(message, type = 'info') {
   toast.innerHTML = `<span>${TOAST_ICONS[type] || '◈'}</span><span>${message}</span>`;
   container.appendChild(toast);
 
+  // Auto-dismiss after 3.5 seconds
   setTimeout(() => {
     toast.style.opacity   = '0';
-    toast.style.transform = 'translateX(12px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 2800);
+    toast.style.transform = 'translateY(-30px)'; // Slide back up
+    
+    // Wait for the CSS transition to finish before removing from DOM
+    setTimeout(() => toast.remove(), 400); 
+  }, 3500);
 }
 
 /* FILTER BUTTONS */
