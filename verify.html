@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAMPARA — Verify Your Account</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:    #0a0805;
+      --bgp:   #100d08;
+      --bgc:   #16120b;
+      --bgh:   #1e1810;
+      --gold:  #c9953a;
+      --goldl: #e8b84b;
+      --goldd: #7a5820;
+      --gok:   #2d6a3f;
+      --crim:  #8b2020;
+      --tp:    #e8dcc8;
+      --ts:    #a89070;
+      --td:    #6b5740;
+      --bdr:   #2e2218;
+      --bdrg:  #3d2d14;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Crimson Text', Georgia, serif;
+      background: var(--bg);
+      color: var(--tp);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background-image:
+        radial-gradient(ellipse 70% 60% at 50% -5%, rgba(201,149,58,.09) 0%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9953a' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* Floating particles */
+    .particles {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      width: 2px; height: 2px;
+      background: var(--goldl);
+      border-radius: 50%;
+      opacity: 0;
+      animation: float linear infinite;
+    }
+    @keyframes float {
+      0%   { opacity: 0; transform: translateY(100vh) scale(0); }
+      10%  { opacity: .6; }
+      90%  { opacity: .2; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    }
+
+    /* Main card wrapper */
+    .wrap {
+      position: relative; z-index: 1;
+      width: 480px; max-width: 95vw;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0;
+      animation: appear .8s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Brand */
+    .brand {
+      display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 28px;
+    }
+    .lamp-wrap {
+      position: relative; margin-bottom: 16px;
+    }
+    .lamp-svg {
+      width: 72px; height: 72px;
+      filter: drop-shadow(0 0 18px rgba(201,149,58,.5));
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { filter: drop-shadow(0 0 12px rgba(201,149,58,.4)); }
+      50%      { filter: drop-shadow(0 0 28px rgba(232,184,75,.75)); }
+    }
+    .lamp-ring {
+      position: absolute; inset: -10px;
+      border: 1px solid rgba(201,149,58,.15);
+      border-radius: 50%;
+      animation: ring-pulse 3s ease-in-out infinite;
+    }
+    .lamp-ring-2 {
+      position: absolute; inset: -20px;
+      border: 1px solid rgba(201,149,58,.07);
+      border-radius: 50%;
+      animation: ring-pulse 3s ease-in-out infinite .4s;
+    }
+    @keyframes ring-pulse {
+      0%,100% { opacity: .4; transform: scale(1); }
+      50%      { opacity: 1; transform: scale(1.05); }
+    }
+
+    .title {
+      font-family: 'Cinzel', serif;
+      font-size: 30px; font-weight: 900; letter-spacing: 10px;
+      background: linear-gradient(135deg, var(--goldl), var(--gold), var(--goldd));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      line-height: 1; margin-bottom: 6px;
+    }
+    .subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; letter-spacing: 4px; color: var(--td); text-transform: uppercase;
+    }
+
+    /* Divider */
+    .divider {
+      width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+    }
+    .divl { flex: 1; height: 1px; }
+    .divl.a { background: linear-gradient(90deg, transparent, var(--bdrg)); }
+    .divl.b { background: linear-gradient(90deg, var(--bdrg), transparent); }
+    .divsym { font-family: 'Cinzel', serif; font-size: 13px; color: var(--goldd); }
+
+    /* Card */
+    .card {
+      width: 100%;
+      background: var(--bgp);
+      border: 1px solid var(--bdrg);
+      border-radius: 10px;
+      padding: 36px 32px;
+      box-shadow: 0 28px 80px rgba(0,0,0,.8), 0 0 0 1px rgba(201,149,58,.04);
+      position: relative; overflow: hidden;
+      text-align: center;
+    }
+    .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: .5;
+    }
+
+    /* ─── STATES ─── */
+    .state { display: none; flex-direction: column; align-items: center; gap: 0; }
+    .state.active { display: flex; animation: stateIn .4s ease both; }
+    @keyframes stateIn {
+      from { opacity: 0; transform: scale(.96); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Loading state */
+    .spinner-wrap { margin-bottom: 24px; position: relative; }
+    .spinner {
+      width: 60px; height: 60px;
+      border: 2px solid var(--bdrg);
+      border-top-color: var(--gold);
+      border-right-color: var(--goldl);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-center {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold);
+    }
+
+    /* Icon states */
+    .state-icon {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+    .state-icon.success {
+      background: radial-gradient(circle, rgba(45,106,63,.25), rgba(45,106,63,.05));
+      border: 1px solid rgba(45,106,63,.4);
+      color: #6dba85;
+      animation: successPop .5s cubic-bezier(.175,.885,.32,1.275) both;
+    }
+    .state-icon.error {
+      background: radial-gradient(circle, rgba(139,32,32,.25), rgba(139,32,32,.05));
+      border: 1px solid rgba(139,32,32,.4);
+      color: #e06060;
+      animation: successPop .5s cubic-bezier(.175,.885,.32,1.275) both;
+    }
+    .state-icon.already {
+      background: radial-gradient(circle, rgba(201,149,58,.2), rgba(201,149,58,.04));
+      border: 1px solid rgba(201,149,58,.4);
+      color: var(--goldl);
+      animation: successPop .5s cubic-bezier(.175,.885,.32,1.275) both;
+    }
+    @keyframes successPop {
+      from { opacity: 0; transform: scale(.5); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Glow ring on success */
+    .state-icon.success::after, .state-icon.error::after {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: 50%;
+      animation: glowRing 2s ease-in-out infinite;
+    }
+    .state-icon.success::after { border: 1px solid rgba(109,186,133,.25); }
+    .state-icon.error::after   { border: 1px solid rgba(224,96,96,.2); }
+    @keyframes glowRing {
+      0%,100% { transform: scale(1); opacity: .5; }
+      50%      { transform: scale(1.12); opacity: 1; }
+    }
+
+    .state-title {
+      font-family: 'Cinzel', serif;
+      font-size: 17px; font-weight: 700; letter-spacing: 2px;
+      margin-bottom: 10px; line-height: 1.3;
+    }
+    .state-title.success { color: #6dba85; }
+    .state-title.error   { color: #e06060; }
+    .state-title.already { color: var(--goldl); }
+    .state-title.loading { color: var(--ts); }
+
+    .state-desc {
+      font-size: 15px; color: var(--ts); line-height: 1.7;
+      margin-bottom: 24px; max-width: 360px;
+    }
+
+    /* Info box */
+    .info-box {
+      width: 100%;
+      background: rgba(201,149,58,.05);
+      border: 1px solid rgba(201,149,58,.15);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 22px;
+      text-align: left;
+    }
+    .info-row {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--ts);
+      padding: 4px 0;
+    }
+    .info-row + .info-row { border-top: 1px solid rgba(201,149,58,.08); margin-top: 4px; padding-top: 8px; }
+    .info-label { color: var(--td); width: 80px; flex-shrink: 0; letter-spacing: 1px; text-transform: uppercase; font-size: 8px; }
+    .info-value { color: var(--goldl); }
+
+    /* Button */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 28px;
+      background: linear-gradient(135deg, rgba(201,149,58,.22), rgba(201,149,58,.08));
+      border: 1px solid var(--goldd); border-radius: 5px;
+      font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; letter-spacing: 3px;
+      color: var(--goldl); cursor: pointer; text-decoration: none;
+      transition: all .25s;
+    }
+    .btn:hover { border-color: var(--gold); box-shadow: 0 0 22px rgba(201,149,58,.2); }
+    .btn.danger {
+      border-color: var(--crim); color: #e08080;
+      background: linear-gradient(135deg, rgba(139,32,32,.2), rgba(139,32,32,.06));
+    }
+    .btn.danger:hover { border-color: #c0392b; box-shadow: 0 0 22px rgba(139,32,32,.2); }
+
+    /* Token badge */
+    .token-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 1px;
+      background: var(--bgc); border: 1px solid var(--bdrg);
+      border-radius: 4px; padding: 5px 10px;
+      color: var(--td); margin-bottom: 22px;
+      word-break: break-all; text-align: center; max-width: 100%;
+    }
+
+    /* Loading label */
+    .loading-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 3px; color: var(--td);
+      text-transform: uppercase; margin-top: 18px; margin-bottom: 0;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: .4; }
+      50%      { opacity: 1; }
+    }
+
+    /* Footer */
+    .foot {
+      margin-top: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px; color: var(--td); letter-spacing: 1.5px;
+      text-align: center; line-height: 2;
+    }
+
+    /* Confetti on success */
+    .confetti-wrap {
+      position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute; top: -10px;
+      width: 6px; height: 10px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Confetti container -->
+<div class="confetti-wrap" id="confetti"></div>
+
+<div class="wrap">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="lamp-wrap">
+      <div class="lamp-ring"></div>
+      <div class="lamp-ring-2"></div>
+      <svg class="lamp-svg" viewBox="0 0 64 64" fill="none">
+        <path d="M32 6C32 6 20 18 20 30C20 36.6 23.6 42.4 28 46V54H36V46C40.4 42.4 44 36.6 44 30C44 18 32 6 32 6Z" fill="url(#lg1)" opacity="0.92"/>
+        <ellipse cx="32" cy="29" rx="7" ry="9" fill="url(#lg2)" opacity="0.65"/>
+        <path d="M27 54H37V57H27V54Z" fill="#7a5820"/>
+        <path d="M25 57H39V61H25V57Z" fill="#5a3e10"/>
+        <defs>
+          <linearGradient id="lg1" x1="32" y1="6" x2="32" y2="57" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#e8b84b"/>
+            <stop offset="100%" stop-color="#7a5820"/>
+          </linearGradient>
+          <radialGradient id="lg2" cx="50%" cy="40%">
+            <stop offset="0%" stop-color="#fff8e8"/>
+            <stop offset="100%" stop-color="#f0a832" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="title">LAMPARA</div>
+    <div class="subtitle">Account Verification</div>
+  </div>
+
+  <div class="divider">
+    <div class="divl a"></div>
+    <div class="divsym">⚜</div>
+    <div class="divl b"></div>
+  </div>
+
+  <!-- Card -->
+  <div class="card">
+
+    <!-- STATE: Loading -->
+    <div class="state active" id="state-loading">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <div class="spinner-center">⚜</div>
+      </div>
+      <div class="state-title loading">VERIFYING YOUR ACCOUNT</div>
+      <div class="state-desc">Please wait while we validate your verification link and activate your account in the archive.</div>
+      <div class="loading-lbl">Authenticating · · ·</div>
+    </div>
+
+    <!-- STATE: No Token -->
+    <div class="state" id="state-notoken">
+      <div class="state-icon error">⚠</div>
+      <div class="state-title error">INVALID LINK</div>
+      <div class="state-desc">This verification link is missing a token. Please use the link sent to your registered email address.</div>
+      <a href="mailto:admin@lampara.edu.ph" class="btn danger">CONTACT ADMINISTRATOR</a>
+    </div>
+
+    <!-- STATE: Success -->
+    <div class="state" id="state-success">
+      <div class="state-icon success">✓</div>
+      <div class="state-title success">ACCOUNT VERIFIED</div>
+      <div class="state-desc">Your account has been successfully verified and approved. You may now sign in to the Lampara archive.</div>
+      <div class="info-box" id="success-info">
+        <div class="info-row">
+          <span class="info-label">Student</span>
+          <span class="info-value" id="verified-name">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Email</span>
+          <span class="info-value" id="verified-email">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Status</span>
+          <span class="info-value" style="color:#6dba85">✓ ACTIVE</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Verified</span>
+          <span class="info-value" id="verified-time">—</span>
+        </div>
+      </div>
+      <a href="index.html" class="btn">ENTER THE ARCHIVE</a>
+    </div>
+
+    <!-- STATE: Already Verified -->
+    <div class="state" id="state-already">
+      <div class="state-icon already">◈</div>
+      <div class="state-title already">ALREADY VERIFIED</div>
+      <div class="state-desc">This account has already been verified. You can sign in to the archive directly.</div>
+      <a href="index.html" class="btn">SIGN IN</a>
+    </div>
+
+    <!-- STATE: Expired -->
+    <div class="state" id="state-expired">
+      <div class="state-icon error">⏳</div>
+      <div class="state-title error">LINK EXPIRED</div>
+      <div class="state-desc">This verification link has expired. Verification links are valid for 24 hours. Please request a new one from the admin.</div>
+      <div class="token-badge" id="expired-token">token: —</div>
+      <a href="mailto:admin@lampara.edu.ph?subject=Resend Verification Link" class="btn danger">REQUEST NEW LINK</a>
+    </div>
+
+    <!-- STATE: Error -->
+    <div class="state" id="state-error">
+      <div class="state-icon error">✕</div>
+      <div class="state-title error">VERIFICATION FAILED</div>
+      <div class="state-desc" id="error-message">Something went wrong while verifying your account. Please try again or contact the administrator.</div>
+      <div class="token-badge" id="error-detail">—</div>
+      <a href="mailto:admin@lampara.edu.ph" class="btn danger">CONTACT ADMINISTRATOR</a>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    STI College General Santos · BSIT Capstone 2026<br>
+    El Filibusterismo · Authorized Personnel Only
+  </div>
+
+</div>
+
+<script>
+  /* ═══════════════════════════════════════
+     CONFIG
+  ═══════════════════════════════════════ */
+  const API_BASE = 'https://lampara-production.up.railway.app/api';
+
+  /* ═══════════════════════════════════════
+     PARTICLES
+  ═══════════════════════════════════════ */
+  const pWrap = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (6 + Math.random() * 10) + 's';
+    p.style.animationDelay   = (Math.random() * 10) + 's';
+    p.style.opacity = Math.random() * 0.6 + 0.1;
+    p.style.width = p.style.height = (1 + Math.random() * 2.5) + 'px';
+    pWrap.appendChild(p);
+  }
+
+  /* ═══════════════════════════════════════
+     STATE MACHINE
+  ═══════════════════════════════════════ */
+  function showState(id) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById('state-' + id).classList.add('active');
+  }
+
+  /* ═══════════════════════════════════════
+     CONFETTI
+  ═══════════════════════════════════════ */
+  function spawnConfetti() {
+    const wrap = document.getElementById('confetti');
+    const colors = ['#e8b84b', '#c9953a', '#6dba85', '#fff8e8', '#7a5820'];
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left            = Math.random() * 100 + '%';
+      piece.style.background      = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.width           = (4 + Math.random() * 6) + 'px';
+      piece.style.height          = (8 + Math.random() * 10) + 'px';
+      piece.style.borderRadius    = Math.random() > .5 ? '50%' : '2px';
+      piece.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+      piece.style.animationDelay   = (Math.random() * .8) + 's';
+      piece.style.opacity          = Math.random() * .8 + .2;
+      wrap.appendChild(piece);
+      setTimeout(() => piece.remove(), 3500);
+    }
+  }
+
+  /* ═══════════════════════════════════════
+     VERIFY
+  ═══════════════════════════════════════ */
+  async function verifyToken(token) {
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Handle specific error types from backend
+        if (res.status === 410 || data.error?.toLowerCase().includes('expired')) {
+          document.getElementById('expired-token').textContent = 'token: ' + token.substring(0, 24) + '…';
+          showState('expired');
+          return;
+        }
+        if (res.status === 409 || data.error?.toLowerCase().includes('already')) {
+          showState('already');
+          return;
+        }
+        document.getElementById('error-message').textContent = data.error || 'Verification failed. Please try again.';
+        document.getElementById('error-detail').textContent = `HTTP ${res.status} · token: ${token.substring(0, 20)}…`;
+        showState('error');
+        return;
+      }
+
+      // SUCCESS
+      const now = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      const ts  = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      if (data.user) {
+        document.getElementById('verified-name').textContent  = data.user.name  || '—';
+        document.getElementById('verified-email').textContent = data.user.email || '—';
+      }
+      document.getElementById('verified-time').textContent = ts;
+
+      showState('success');
+      spawnConfetti();
+
+    } catch (err) {
+      document.getElementById('error-message').textContent = 'Could not connect to the server. Please check your connection.';
+      document.getElementById('error-detail').textContent  = err.message;
+      showState('error');
+    }
+  }
+
+  /* ═══════════════════════════════════════
+     INIT
+  ═══════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const token  = params.get('token');
+
+    if (!token) {
+      setTimeout(() => showState('notoken'), 800);
+      return;
+    }
+
+    // Small delay so the loading animation plays
+    setTimeout(() => verifyToken(token), 1200);
+  });
+</script>
+</body>
+</html>
