@@ -492,30 +492,54 @@ document.querySelectorAll('.fb').forEach(btn => {
     this.closest('.tb').querySelectorAll('.fb').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
 
-    const logPanel = document.getElementById('panel-lg');
-    if (!this.closest('.tb').closest('#panel-lg')) return;
-
     const filter = String(this.textContent || '').trim().toLowerCase();
-    const rows   = document.querySelectorAll('#logtb tr[data-visibility]');
+    const panelId = this.closest('.panel').id;
 
-    rows.forEach(row => {
-      const vis = row.getAttribute('data-visibility');
-      if (!canSeeLog(vis)) { row.style.display = 'none'; return; }
+    if (panelId === 'panel-lg') {
+      const rows = document.querySelectorAll('#logtb tr[data-visibility]');
+      rows.forEach(row => {
+        const vis = row.getAttribute('data-visibility');
+        if (!canSeeLog(vis)) { row.style.display = 'none'; return; }
 
-      const type = row.getAttribute('data-type') || '';
-      if (filter === 'all') {
-        row.style.display = '';
-      } else if (filter === 'login') {
-        const action = row.querySelector('.log-pill') ? row.querySelector('.log-pill').textContent.trim() : '';
-        row.style.display = (action === 'LOGIN' || action === 'LOGOUT') ? '' : 'none';
-      } else if (filter === 'players') {
-        row.style.display = type === 'players' ? '' : 'none';
-      } else if (filter === 'admin') {
-        row.style.display = type === 'admin' ? '' : 'none';
-      } else if (filter === 'moderator') {
-        row.style.display = type === 'moderator' ? '' : 'none';
-      }
-    });
+        const type = row.getAttribute('data-type') || '';
+        if (filter === 'all') {
+          row.style.display = '';
+        } else if (filter === 'login') {
+          const action = row.querySelector('.log-pill') ? row.querySelector('.log-pill').textContent.trim() : '';
+          row.style.display = (action === 'LOGIN' || action === 'LOGOUT') ? '' : 'none';
+        } else if (filter === 'players') {
+          row.style.display = type === 'players' ? '' : 'none';
+        } else if (filter === 'admin') {
+          row.style.display = type === 'admin' ? '' : 'none';
+        } else if (filter === 'moderator') {
+          row.style.display = type === 'moderator' ? '' : 'none';
+        }
+      });
+    } else if (panelId === 'panel-db') {
+      const rows = document.querySelectorAll('#db-ptbody tr');
+      rows.forEach(row => {
+        const status = row.getAttribute('data-status') || '';
+        if (filter === 'all') {
+          row.style.display = '';
+        } else if (filter === 'active') {
+          row.style.display = (status === 'active' || status === 'online' || status === 'offline') ? '' : 'none';
+        } else if (filter === 'pending') {
+          row.style.display = (status === 'pending') ? '' : 'none';
+        } else {
+          row.style.display = (status === filter) ? '' : 'none';
+        }
+      });
+    } else if (panelId === 'panel-pl') {
+      const rows = document.querySelectorAll('#ptbody tr');
+      rows.forEach(row => {
+        const status = row.getAttribute('data-status') || '';
+        if (filter === 'all') {
+          row.style.display = '';
+        } else {
+          row.style.display = (status === filter) ? '' : 'none';
+        }
+      });
+    }
   });
 });
 
@@ -665,6 +689,7 @@ function renderDashboardPlayers(players) {
     }
 
     const row = document.createElement('tr');
+    row.setAttribute('data-status', displayStatus.toLowerCase());
     row.innerHTML = `
       <td>
         <div class="pcell">
@@ -712,6 +737,7 @@ function renderPlayerRegistry(players) {
     }
 
     const row = document.createElement('tr');
+    row.setAttribute('data-status', displayStatus.toLowerCase());
     row.innerHTML = `
       <td>
         <div class="pcell">
