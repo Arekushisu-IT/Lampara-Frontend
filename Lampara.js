@@ -1,6 +1,18 @@
-﻿const ACCOUNTS = {};
+const ACCOUNTS = {};
 
 let authToken = null;
+
+/**
+ * XSS Prevention: Escapes HTML special characters in user-provided strings.
+ * Always use esc() when inserting user data (names, emails, etc.) into innerHTML.
+ * This prevents malicious scripts from running in the admin's browser.
+ */
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
 
 const ROLE_META = {
   admin: { lbl: '⚜ ADMIN', cls: 'rp-admin' },
@@ -267,16 +279,16 @@ function renderPendingTable(pending) {
     row.innerHTML = `
       <td>
         <div class="pcell">
-          <div class="pav" style="background:linear-gradient(135deg,#4a3a10,#7a5820);color:#f0d090">${initials}</div>
+          <div class="pav" style="background:linear-gradient(135deg,#4a3a10,#7a5820);color:#f0d090">${esc(initials)}</div>
           <div>
-            <div class="pname">${p.name}</div>
+            <div class="pname">${esc(p.name)}</div>
             <div class="pid">Pending</div>
           </div>
         </div>
       </td>
       <td><span class="mono-sm">${p.id ? '2026-STI-' + String(p.id).padStart(4, '0') : '—'}</span></td>
-      <td>${section}</td>
-      <td><span class="mono-sm gold-txt">${p.username || '—'}</span></td>
+      <td>${esc(section)}</td>
+      <td><span class="mono-sm gold-txt">${esc(p.username) || '—'}</span></td>
       <td><span class="date-sm">${submitted}</span></td>
       <td>
         <button class="ab aba" onclick="approvePending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">APPROVE</button>
@@ -656,11 +668,11 @@ function renderDashboardPlayers(players) {
     row.innerHTML = `
       <td>
         <div class="pcell">
-          <div class="pav" style="background:linear-gradient(135deg,#2d6a3f,#6dba85);color:#fff">${initials}</div>
-          <div><div class="pname">${p.name}</div><div class="pid">@${p.username}</div></div>
+          <div class="pav" style="background:linear-gradient(135deg,#2d6a3f,#6dba85);color:#fff">${esc(initials)}</div>
+          <div><div class="pname">${esc(p.name)}</div><div class="pid">@${esc(p.username)}</div></div>
         </div>
       </td>
-      <td>${email}</td>
+      <td>${esc(email)}</td>
       <td><span class="pill ${pillCls}">${displayStatus}</span></td>
       <td>${chapterText}</td>
       <td><span class="mono-sm" ${susColor}>${suspicion} pts</span></td>
@@ -703,11 +715,11 @@ function renderPlayerRegistry(players) {
     row.innerHTML = `
       <td>
         <div class="pcell">
-          <div class="pav" style="background:linear-gradient(135deg,#2d6a3f,#6dba85);color:#fff">${initials}</div>
-          <div><div class="pname">${p.name}</div><div class="pid">@${p.username}</div></div>
+          <div class="pav" style="background:linear-gradient(135deg,#2d6a3f,#6dba85);color:#fff">${esc(initials)}</div>
+          <div><div class="pname">${esc(p.name)}</div><div class="pid">@${esc(p.username)}</div></div>
         </div>
       </td>
-      <td>${email}</td>
+      <td>${esc(email)}</td>
       <td><span class="pill ${pillCls}">${displayStatus}</span></td>
       <td>
         <div class="plbl">Lvl ${p.level || 1}</div>
@@ -815,143 +827,3 @@ async function fetchAndRenderLogs() {
     console.error('Failed to load logs:', err);
   }
 }
-// ==========================================
-// LAMPARA ADMIN PANEL - PLAYER REGISTRY
-// ==========================================
-
-// Your live Railway backend URL
-const API_BASE_URL = 'https://lampara-production.up.railway.app/api';
-
-// 1. Fetch Players from Database
-async function fetchPlayers() {
-    try {
-        // Change '/admin/players' to your actual route that gets all players
-        const response = await fetch(`${API_BASE_URL}/admin/players`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                // If your admin route is protected by a token, uncomment the line below:
-                // 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            // Assuming your backend returns { players: [...] }
-            renderPlayerTable(data.players);
-        } else {
-            console.error("Failed to load players.");
-        }
-    } catch (error) {
-        console.error("Network error while fetching players:", error);
-    }
-}
-
-// 2. Format the Status Badge Colors
-function getStatusBadgeHtml(status) {
-    const s = status.toLowerCase();
-    if (s === 'active') return `<span class="pill pa">ACTIVE</span>`;
-    // Treat 'inactive' as 'pending' for the UI
-    if (s === 'inactive' || s === 'pending') return `<span class="pill pp">PENDING</span>`; 
-    if (s === 'suspended') return `<span class="pill ps">SUSPENDED</span>`;
-    return `<span class="pill pst">${status.toUpperCase()}</span>`;
-}
-
-// 3. Render the Table Rows
-function renderPlayerTable(players) {
-    // IMPORTANT: Make sure your HTML table has <tbody id="player-table-body"></tbody>
-    const tableBody = document.getElementById('player-table-body');
-    if (!tableBody) {
-        console.error("Could not find tbody with id 'player-table-body'");
-        return;
-    }
-
-    tableBody.innerHTML = ''; // Clear existing rows before loading new ones
-
-    players.forEach(player => {
-        // Create 2-letter initials from the player's name
-        const initials = player.name.substring(0, 2).toUpperCase();
-        
-        // Handle Online/Offline Status Indicators
-        const isOnline = player.is_online === 1 || player.is_online === true;
-        const onlineDot = isOnline ? `<div class="odot" style="bottom: -2px; right: -2px; width: 6px; height: 6px;"></div>` : '';
-        const onlineText = isOnline ? `<span style="color:#6dba85; font-size:8px; margin-left:4px;">• Online</span>` : '';
-
-        // Handle Action Buttons based on current status
-        let actionButtonsHtml = `<button class="ab abv">VIEW</button>`;
-        
-        // If suspended or INACTIVE, show the APPROVE/REINSTATE button
-        if (player.status.toLowerCase() === 'suspended' || player.status.toLowerCase() === 'inactive') {
-            actionButtonsHtml += `<button class="ab aba" onclick="changePlayerStatus(${player.id}, 'active')">APPROVE / REINSTATE</button>`;
-        } else {
-            // Otherwise, show the SUSPEND button
-            actionButtonsHtml += `<button class="ab absu" onclick="changePlayerStatus(${player.id}, 'suspended')">SUSPEND</button>`;
-        }
-
-        // Build the HTML for the row using your exact CSS classes
-        const row = `
-            <tr>
-                <td>
-                    <div class="pcell">
-                        <div class="pav">
-                            ${initials}
-                            ${onlineDot}
-                        </div>
-                        <div>
-                            <div class="pname">${player.name}</div>
-                            <div class="pid">@${player.username}${onlineText}</div>
-                        </div>
-                    </div>
-                </td>
-                <td>${player.email || 'Unassigned'}</td>
-                <td>${getStatusBadgeHtml(player.status)}</td>
-                <td>
-                    <div class="plbl">Lvl ${player.level}</div>
-                    <div class="pbar"><div class="pfill" style="width: ${player.experience || 0}%;"></div></div>
-                </td>
-                <td style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gold);">0%</td>
-                <td style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--td);">0</td>
-                <td>
-                    ${actionButtonsHtml}
-                </td>
-            </tr>
-        `;
-        
-        tableBody.insertAdjacentHTML('beforeend', row);
-    });
-}
-
-// 4. Handle Suspend/Approve Button Clicks
-async function changePlayerStatus(playerId, newStatus) {
-    // Ask for confirmation before modifying the database
-    if (!confirm(`Are you sure you want to change this player's status to ${newStatus.toUpperCase()}?`)) return;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/update-status`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                // Uncomment if your admin route requires a token:
-                // 'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-            },
-            body: JSON.stringify({ id: playerId, status: newStatus })
-        });
-
-        if (response.ok) {
-            console.log(`Player status successfully updated to ${newStatus}!`);
-            
-            // Refresh the table immediately so the UI changes to reflect the new status
-            fetchPlayers(); 
-        } else {
-            alert("Failed to update status on the server.");
-        }
-    } catch (error) {
-        console.error("Network error while updating status:", error);
-        alert("Network error. Could not reach the server.");
-    }
-}
-
-// 5. Initialize the table when the web page finishes loading
-document.addEventListener('DOMContentLoaded', () => {
-    fetchPlayers();
-});
