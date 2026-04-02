@@ -219,10 +219,11 @@ async function updatePlayerStatus(playerId, playerName, newStatus, actionName) {
   }
 }
 
-function openPM(name, id, section, status, chapter, suspicion, codex) {
+function openPM(name, id, section, age, status, chapter, suspicion, codex) {
   document.getElementById('pm-n').textContent  = name;
   document.getElementById('pm-i').textContent  = id;
   document.getElementById('pm-s').textContent  = section;
+  document.getElementById('pm-a').textContent  = age;
   document.getElementById('pm-c').textContent  = chapter;
   document.getElementById('pm-su').textContent = suspicion + ' / 100 pts';
   document.getElementById('pm-cd').textContent = codex;
@@ -288,6 +289,7 @@ function renderPendingTable(pending) {
       </td>
       <td><span class="mono-sm">${p.id ? '2026-STI-' + String(p.id).padStart(4, '0') : '—'}</span></td>
       <td>${esc(section)}</td>
+      <td>${esc(p.age || '--')}</td>
       <td><span class="mono-sm gold-txt">${esc(p.username) || '—'}</span></td>
       <td><span class="date-sm">${submitted}</span></td>
       <td>
@@ -685,7 +687,7 @@ function renderDashboardPlayers(players) {
         <button class="ab abr" onclick="rejectPending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">REJECT</button>
       `;
     } else {
-      actionHTML = `<button class="ab abv" onclick="openPM('${p.name}','ID-${p.id}','${email}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
+      actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
     }
 
     const row = document.createElement('tr');
@@ -723,7 +725,7 @@ function renderPlayerRegistry(players) {
     
     const email = p.email || 'Unassigned';
 
-    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name}','ID-${p.id}','${email}','${displayStatus}','Lvl ${p.level || 1}','0','${progressPct}%')">VIEW</button>`;
+    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','Lvl ${p.level || 1}','0','${progressPct}%')">VIEW</button>`;
     
     if (p.status === 'active') {
       actionHTML += `<button class="ab absu" onclick="updatePlayerStatus(${p.id}, '${p.name.replace(/'/g, "\\'")}', 'banned', 'Suspended')">SUSPEND</button>`;
