@@ -787,12 +787,40 @@ async function fetchAndRenderQuests() {
   }
 }
 
+let _questSearch = '';
+let _questFilter = 'all'; // 'all' | 'active' | 'standby'
+
 function renderQuestView() {
   const grid = document.querySelector('#panel-qt .cgrid');
   if (!grid) return;
   grid.innerHTML = '';
 
   const rom = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII'];
+
+  // ── Remove old toolbar & breadcrumb ──
+  const oldTB = document.querySelector('#panel-qt .quest-toolbar');
+  if (oldTB) oldTB.remove();
+  const existingBC = document.querySelector('#panel-qt .quest-bc');
+  if (existingBC) existingBC.remove();
+
+  // ── Search & Filter Toolbar ──
+  const tbDiv = document.createElement('div');
+  tbDiv.className = 'quest-toolbar';
+  tbDiv.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;';
+  tbDiv.innerHTML = `
+    <input type="text" id="quest-search" placeholder="Search quests..." value="${_questSearch}"
+      style="flex:1;min-width:180px;padding:10px 14px;border-radius:6px;border:1px solid #3d2d14;background:rgba(10,8,5,.6);color:#e8dcc8;font-size:13px;font-family:'Cinzel',serif;outline:none;">
+    <select id="quest-filter"
+      style="padding:10px 14px;border-radius:6px;border:1px solid #3d2d14;background:rgba(10,8,5,.8);color:#e8dcc8;font-size:12px;font-family:'Cinzel',serif;cursor:pointer;">
+      <option value="all" ${_questFilter==='all'?'selected':''}>All Status</option>
+      <option value="active" ${_questFilter==='active'?'selected':''}>Active Only</option>
+      <option value="standby" ${_questFilter==='standby'?'selected':''}>Standby Only</option>
+    </select>
+  `;
+  grid.insertAdjacentElement('beforebegin', tbDiv);
+
+  document.getElementById('quest-search').addEventListener('input', e => { _questSearch = e.target.value; renderQuestView(); });
+  document.getElementById('quest-filter').addEventListener('change', e => { _questFilter = e.target.value; renderQuestView(); });
 
   // ── Breadcrumb ──
   let bcHTML = '';
@@ -811,11 +839,17 @@ function renderQuestView() {
       <span style="color:#e8dcc8;">Main Quest ${rom[_selectedMQ-1] || _selectedMQ}</span>
     </div>`;
   }
-
-  // Insert breadcrumb before grid
-  const existingBC = document.querySelector('#panel-qt .quest-bc');
-  if (existingBC) existingBC.remove();
   if (bcHTML) grid.insertAdjacentHTML('beforebegin', bcHTML);
+
+  // ── Helper: apply search + filter ──
+  const searchLower = _questSearch.toLowerCase();
+  function matchesFilter(quests) {
+    let filtered = quests;
+    if (_questFilter === 'active') filtered = filtered.filter(q => q.status === 'active');
+    if (_questFilter === 'standby') filtered = filtered.filter(q => q.status !== 'active');
+    if (searchLower) filtered = filtered.filter(q => (q.title||'').toLowerCase().includes(searchLower) || (q.description||'').toLowerCase().includes(searchLower));
+    return filtered;
+  }
 
   // ── LEVEL 1: Chapters ──
   if (_questView === 'chapters') {
@@ -823,9 +857,14 @@ function renderQuestView() {
     
     chapters.forEach(ch => {
       const chQuests = _allQuests.filter(q => q.chapter === ch);
+      const filtered = matchesFilter(chQuests);
+      if (searchLower && filtered.length === 0) return; // hide if no match
+      
       const activeCount = chQuests.filter(q => q.status === 'active').length;
       const totalMQ = [...new Set(chQuests.map(q => q.main_quest))].length;
       const totalPlayers = chQuests.reduce((sum, q) => sum + (q.player_count || 0), 0);
+      const totalSQ = chQuests.length;
+      const pct = totalSQ > 0 ? Math.round((activeCount / totalSQ) * 100) : 0;
       const roman = rom[ch - 1] || ch;
 
       const card = document.createElement('div');
@@ -836,7 +875,11 @@ function renderQuestView() {
         <div class="cdec">${roman}</div>
         <div class="cnum">CHAPTER ${roman}</div>
         <div class="ctit">El Filibusterismo</div>
-        <div class="csub">${totalMQ} Main Quests · ${activeCount} Active Sub Quests</div>
+        <div class="csub">${totalMQ} Main Quests · ${activeCount}/${totalSQ} Active Sub Quests</div>
+        <div style="margin:12px 0 6px;background:rgba(61,45,20,.4);border-radius:4px;height:8px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#6dba85,#c9953a);border-radius:4px;transition:width .4s ease;"></div>
+        </div>
+        <div style="font-size:10px;color:#a89070;text-align:right;margin-bottom:8px;">${pct}% Active</div>
         <div class="cmeta">
           <div class="cmi">Total Players<span class="cmv" style="color:#6dba85">${totalPlayers}</span></div>
           <div class="cmi">Main Quests<span class="cmv">${totalMQ}</span></div>
@@ -855,11 +898,24 @@ function renderQuestView() {
 
     mainQuests.forEach(mq => {
       const mqQuests = chQuests.filter(q => q.main_quest === mq);
+      const filtered = matchesFilter(mqQuests);
+      if (searchLower && filtered.length === 0) return;
+
       const activeCount = mqQuests.filter(q => q.status === 'active').length;
       const standbyCount = mqQuests.filter(q => q.status !== 'active').length;
       const totalPlayers = mqQuests.reduce((sum, q) => sum + (q.player_count || 0), 0);
       const roman = rom[mq - 1] || mq;
       const allStandby = activeCount === 0;
+      const allActive = standbyCount === 0;
+      const pct = mqQuests.length > 0 ? Math.round((activeCount / mqQuests.length) * 100) : 0;
+
+      // Bulk button: if all active → offer "Set All Standby", vice versa, or mixed
+      let bulkBtnHTML = '';
+      if (allActive) {
+        bulkBtnHTML = `<button class="ab abr" style="margin-top:10px;width:100%;border-radius:4px;font-size:11px;" onclick="event.stopPropagation();bulkSetStatus(${_selectedChapter},${mq},'standby')">⏸ SET ALL TO STANDBY</button>`;
+      } else {
+        bulkBtnHTML = `<button class="ab aba" style="margin-top:10px;width:100%;border-radius:4px;font-size:11px;" onclick="event.stopPropagation();bulkSetStatus(${_selectedChapter},${mq},'active')">⚡ ACTIVATE ALL SUB QUESTS</button>`;
+      }
 
       const card = document.createElement('div');
       card.className = `cc ${allStandby ? 'sb' : ''}`;
@@ -870,6 +926,10 @@ function renderQuestView() {
         <div class="cnum">MAIN QUEST ${roman}</div>
         <div class="ctit">${allStandby ? 'Awaiting Content' : mqQuests[0].title.split(':')[0] || 'Main Quest ' + mq}</div>
         <div class="csub">${activeCount} Active · ${standbyCount} Standby</div>
+        <div style="margin:12px 0 4px;background:rgba(61,45,20,.4);border-radius:4px;height:8px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${allStandby ? '#6b5740' : 'linear-gradient(90deg,#6dba85,#c9953a)'};border-radius:4px;transition:width .4s ease;"></div>
+        </div>
+        <div style="font-size:10px;color:#a89070;text-align:right;margin-bottom:6px;">${activeCount}/${mqQuests.length} Active</div>
         <div class="cmeta">
           <div class="cmi">Players<span class="cmv" style="color:#6dba85">${totalPlayers}</span></div>
           <div class="cmi">Sub Quests<span class="cmv">${mqQuests.length}</span></div>
@@ -878,6 +938,7 @@ function renderQuestView() {
           ? `<div class="sbov"><div class="sbtx">STANDBY</div></div><svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
           : `<span class="pill pa">ACTIVE</span>`
         }
+        <div style="position:relative;z-index:10;">${bulkBtnHTML}</div>
       `;
       grid.appendChild(card);
     });
@@ -886,7 +947,8 @@ function renderQuestView() {
 
   // ── LEVEL 3: Sub Quests ──
   if (_questView === 'subquests') {
-    const subQuests = _allQuests.filter(q => q.chapter === _selectedChapter && q.main_quest === _selectedMQ);
+    let subQuests = _allQuests.filter(q => q.chapter === _selectedChapter && q.main_quest === _selectedMQ);
+    subQuests = matchesFilter(subQuests);
 
     subQuests.forEach(q => {
       const isSb = q.status !== 'active';
@@ -939,6 +1001,23 @@ window.setQuestStatus = async function(id, newStatus) {
     renderQuestView();
   } catch(err) {
     showT(err.message || 'Failed to update quest status', 'error');
+  }
+}
+
+window.bulkSetStatus = async function(chapter, mainQuest, newStatus) {
+  try {
+    const res = await apiCall(`/quests/bulk-status/${chapter}/${mainQuest}`, 'PUT', { status: newStatus });
+    if (res.error) throw new Error(res.error);
+    showT(`${res.affected || 'All'} sub quests set to ${newStatus.toUpperCase()}`, 'success');
+    
+    // Re-fetch and stay in place
+    let questsData = await apiCall('/quests');
+    if (questsData.quests) questsData = questsData.quests;
+    if (!Array.isArray(questsData)) questsData = [];
+    _allQuests = questsData;
+    renderQuestView();
+  } catch(err) {
+    showT(err.message || 'Bulk update failed', 'error');
   }
 }
 
