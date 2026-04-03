@@ -787,7 +787,7 @@ async function fetchAndRenderQuests() {
 
       const metaHTML = !isSb 
         ? `<div class="cmeta">
-             <div class="cmi">Reached<span class="cmv" style="color:#6dba85">--</span></div>
+             <div class="cmi">Reached<span class="cmv" style="color:#6dba85">${q.player_count || 0}</span></div>
              <div class="cmi">Avg Fails<span class="cmv">--</span></div>
            </div>` 
         : '';
