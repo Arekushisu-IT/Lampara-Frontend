@@ -785,6 +785,10 @@ async function fetchAndRenderQuests() {
         ? `<div class="sbov"><div class="sbtx">STANDBY</div></div><svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
         : `<span class="pill pa">ACTIVE</span>`;
 
+      const btnHTML = isSb
+        ? `<button class="ab aba" style="margin-top:12px; width:100%; border-radius:4px" onclick="event.stopPropagation(); setQuestStatus(${q.id}, 'active')">ACTIVATE QUEST</button>`
+        : `<button class="ab abr" style="margin-top:12px; width:100%; border-radius:4px" onclick="event.stopPropagation(); setQuestStatus(${q.id}, 'standby')">SET TO STANDBY</button>`;
+
       const metaHTML = !isSb 
         ? `<div class="cmeta">
              <div class="cmi">Reached<span class="cmv" style="color:#6dba85">${q.player_count || 0}</span></div>
@@ -794,7 +798,6 @@ async function fetchAndRenderQuests() {
 
       const card = document.createElement('div');
       card.className = `cc ${sbClass}`;
-      card.onclick = () => showT(`Ch.${q.chapter} config opened`, 'success');
       card.innerHTML = `
         <div class="cdec">${roman}</div>
         <div class="cnum">CHAPTER ${roman}</div>
@@ -802,11 +805,23 @@ async function fetchAndRenderQuests() {
         <div class="csub">${q.description || 'No description available'}</div>
         ${metaHTML}
         ${pillHTML}
+        <div style="position:relative; z-index:10;">${btnHTML}</div>
       `;
       grid.appendChild(card);
     });
   } catch (err) {
     console.error('Failed to load quests:', err);
+  }
+}
+
+window.setQuestStatus = async function(id, newStatus) {
+  try {
+    const res = await apiCall(`/quests/${id}`, 'PUT', { status: newStatus });
+    if (res.error) throw new Error(res.error);
+    showT(`Quest successfully set to ${newStatus.toUpperCase()}`, 'success');
+    fetchAndRenderQuests();
+  } catch(err) {
+    showT(err.message || 'Failed to update quest status', 'error');
   }
 }
 
