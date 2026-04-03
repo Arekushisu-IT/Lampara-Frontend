@@ -761,6 +761,14 @@ function renderPlayerRegistry(players) {
   });
 }
 
+// ============================
+// QUEST DRILL-DOWN STATE
+// ============================
+let _allQuests = [];
+let _questView = 'chapters';   // 'chapters' | 'mainquests' | 'subquests'
+let _selectedChapter = null;
+let _selectedMQ = null;
+
 async function fetchAndRenderQuests() {
   try {
     let questsData = await apiCall('/quests');
@@ -769,48 +777,151 @@ async function fetchAndRenderQuests() {
     if (questsData.quests) questsData = questsData.quests;
     if (!Array.isArray(questsData)) questsData = [];
 
-    const grid = document.querySelector('#panel-qt .cgrid');
-    if (!grid) return;
+    _allQuests = questsData;
+    _questView = 'chapters';
+    _selectedChapter = null;
+    _selectedMQ = null;
+    renderQuestView();
+  } catch (err) {
+    console.error('Failed to load quests:', err);
+  }
+}
+
+function renderQuestView() {
+  const grid = document.querySelector('#panel-qt .cgrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const rom = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII'];
+
+  // ── Breadcrumb ──
+  let bcHTML = '';
+  if (_questView === 'mainquests') {
+    bcHTML = `<div class="quest-bc" style="display:flex;align-items:center;gap:8px;margin-bottom:18px;font-family:'Cinzel',serif;">
+      <span style="cursor:pointer;color:#c9953a;text-decoration:underline;" onclick="_questView='chapters';_selectedChapter=null;renderQuestView();">⬅ All Chapters</span>
+      <span style="color:#6b5740;">›</span>
+      <span style="color:#e8dcc8;">Chapter ${rom[_selectedChapter-1] || _selectedChapter}</span>
+    </div>`;
+  } else if (_questView === 'subquests') {
+    bcHTML = `<div class="quest-bc" style="display:flex;align-items:center;gap:8px;margin-bottom:18px;font-family:'Cinzel',serif;">
+      <span style="cursor:pointer;color:#c9953a;text-decoration:underline;" onclick="_questView='chapters';_selectedChapter=null;_selectedMQ=null;renderQuestView();">⬅ All Chapters</span>
+      <span style="color:#6b5740;">›</span>
+      <span style="cursor:pointer;color:#c9953a;text-decoration:underline;" onclick="_questView='mainquests';_selectedMQ=null;renderQuestView();">Chapter ${rom[_selectedChapter-1] || _selectedChapter}</span>
+      <span style="color:#6b5740;">›</span>
+      <span style="color:#e8dcc8;">Main Quest ${rom[_selectedMQ-1] || _selectedMQ}</span>
+    </div>`;
+  }
+
+  // Insert breadcrumb before grid
+  const existingBC = document.querySelector('#panel-qt .quest-bc');
+  if (existingBC) existingBC.remove();
+  if (bcHTML) grid.insertAdjacentHTML('beforebegin', bcHTML);
+
+  // ── LEVEL 1: Chapters ──
+  if (_questView === 'chapters') {
+    const chapters = [...new Set(_allQuests.map(q => q.chapter))].sort((a,b) => a-b);
     
-    grid.innerHTML = '';
+    chapters.forEach(ch => {
+      const chQuests = _allQuests.filter(q => q.chapter === ch);
+      const activeCount = chQuests.filter(q => q.status === 'active').length;
+      const totalMQ = [...new Set(chQuests.map(q => q.main_quest))].length;
+      const totalPlayers = chQuests.reduce((sum, q) => sum + (q.player_count || 0), 0);
+      const roman = rom[ch - 1] || ch;
 
-    const rom = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII'];
+      const card = document.createElement('div');
+      card.className = 'cc';
+      card.style.cursor = 'pointer';
+      card.onclick = () => { _selectedChapter = ch; _questView = 'mainquests'; renderQuestView(); };
+      card.innerHTML = `
+        <div class="cdec">${roman}</div>
+        <div class="cnum">CHAPTER ${roman}</div>
+        <div class="ctit">El Filibusterismo</div>
+        <div class="csub">${totalMQ} Main Quests · ${activeCount} Active Sub Quests</div>
+        <div class="cmeta">
+          <div class="cmi">Total Players<span class="cmv" style="color:#6dba85">${totalPlayers}</span></div>
+          <div class="cmi">Main Quests<span class="cmv">${totalMQ}</span></div>
+        </div>
+        <span class="pill pa">CHAPTER OVERVIEW</span>
+      `;
+      grid.appendChild(card);
+    });
+    return;
+  }
 
-    questsData.forEach(q => {
+  // ── LEVEL 2: Main Quests ──
+  if (_questView === 'mainquests') {
+    const chQuests = _allQuests.filter(q => q.chapter === _selectedChapter);
+    const mainQuests = [...new Set(chQuests.map(q => q.main_quest))].sort((a,b) => a-b);
+
+    mainQuests.forEach(mq => {
+      const mqQuests = chQuests.filter(q => q.main_quest === mq);
+      const activeCount = mqQuests.filter(q => q.status === 'active').length;
+      const standbyCount = mqQuests.filter(q => q.status !== 'active').length;
+      const totalPlayers = mqQuests.reduce((sum, q) => sum + (q.player_count || 0), 0);
+      const roman = rom[mq - 1] || mq;
+      const allStandby = activeCount === 0;
+
+      const card = document.createElement('div');
+      card.className = `cc ${allStandby ? 'sb' : ''}`;
+      card.style.cursor = 'pointer';
+      card.onclick = () => { _selectedMQ = mq; _questView = 'subquests'; renderQuestView(); };
+      card.innerHTML = `
+        <div class="cdec">${roman}</div>
+        <div class="cnum">MAIN QUEST ${roman}</div>
+        <div class="ctit">${allStandby ? 'Awaiting Content' : mqQuests[0].title.split(':')[0] || 'Main Quest ' + mq}</div>
+        <div class="csub">${activeCount} Active · ${standbyCount} Standby</div>
+        <div class="cmeta">
+          <div class="cmi">Players<span class="cmv" style="color:#6dba85">${totalPlayers}</span></div>
+          <div class="cmi">Sub Quests<span class="cmv">${mqQuests.length}</span></div>
+        </div>
+        ${allStandby 
+          ? `<div class="sbov"><div class="sbtx">STANDBY</div></div><svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
+          : `<span class="pill pa">ACTIVE</span>`
+        }
+      `;
+      grid.appendChild(card);
+    });
+    return;
+  }
+
+  // ── LEVEL 3: Sub Quests ──
+  if (_questView === 'subquests') {
+    const subQuests = _allQuests.filter(q => q.chapter === _selectedChapter && q.main_quest === _selectedMQ);
+
+    subQuests.forEach(q => {
       const isSb = q.status !== 'active';
       const sbClass = isSb ? 'sb' : '';
-      const roman = rom[q.chapter - 1] || q.chapter;
-      
-      const pillHTML = isSb 
+      const roman = rom[q.sub_quest - 1] || q.sub_quest;
+
+      const pillHTML = isSb
         ? `<div class="sbov"><div class="sbtx">STANDBY</div></div><svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
         : `<span class="pill pa">ACTIVE</span>`;
 
       const btnHTML = isSb
-        ? `<button class="ab aba" style="margin-top:12px; width:100%; border-radius:4px" onclick="event.stopPropagation(); setQuestStatus(${q.id}, 'active')">ACTIVATE QUEST</button>`
-        : `<button class="ab abr" style="margin-top:12px; width:100%; border-radius:4px" onclick="event.stopPropagation(); setQuestStatus(${q.id}, 'standby')">SET TO STANDBY</button>`;
+        ? `<button class="ab aba" style="margin-top:12px;width:100%;border-radius:4px" onclick="event.stopPropagation();setQuestStatus(${q.id},'active')">ACTIVATE QUEST</button>`
+        : `<button class="ab abr" style="margin-top:12px;width:100%;border-radius:4px" onclick="event.stopPropagation();setQuestStatus(${q.id},'standby')">SET TO STANDBY</button>`;
 
-      const metaHTML = !isSb 
+      const metaHTML = !isSb
         ? `<div class="cmeta">
              <div class="cmi">Reached<span class="cmv" style="color:#6dba85">${q.player_count || 0}</span></div>
              <div class="cmi">Avg Fails<span class="cmv">--</span></div>
-           </div>` 
+           </div>`
         : '';
 
       const card = document.createElement('div');
       card.className = `cc ${sbClass}`;
       card.innerHTML = `
         <div class="cdec">${roman}</div>
-        <div class="cnum">CHAPTER ${roman}</div>
+        <div class="cnum">SUB QUEST ${roman}</div>
         <div class="ctit">${q.title}</div>
         <div class="csub">${q.description || 'No description available'}</div>
         ${metaHTML}
         ${pillHTML}
-        <div style="position:relative; z-index:10;">${btnHTML}</div>
+        <div style="position:relative;z-index:10;">${btnHTML}</div>
       `;
       grid.appendChild(card);
     });
-  } catch (err) {
-    console.error('Failed to load quests:', err);
+    return;
   }
 }
 
@@ -819,7 +930,13 @@ window.setQuestStatus = async function(id, newStatus) {
     const res = await apiCall(`/quests/${id}`, 'PUT', { status: newStatus });
     if (res.error) throw new Error(res.error);
     showT(`Quest successfully set to ${newStatus.toUpperCase()}`, 'success');
-    fetchAndRenderQuests();
+    
+    // Re-fetch data but keep the current drill-down position
+    let questsData = await apiCall('/quests');
+    if (questsData.quests) questsData = questsData.quests;
+    if (!Array.isArray(questsData)) questsData = [];
+    _allQuests = questsData;
+    renderQuestView();
   } catch(err) {
     showT(err.message || 'Failed to update quest status', 'error');
   }
