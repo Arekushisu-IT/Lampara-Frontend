@@ -788,7 +788,7 @@ async function fetchAndRenderQuests() {
 }
 
 let _questSearch = '';
-let _questFilter = 'all'; // 'all' | 'active' | 'standby'
+let _questFilter = 'all'; // 'all' | 'active' | 'standby' | 'future'
 
 function renderQuestView() {
   const grid = document.querySelector('#panel-qt .cgrid');
@@ -814,7 +814,8 @@ function renderQuestView() {
       style="padding:10px 14px;border-radius:6px;border:1px solid #3d2d14;background:rgba(10,8,5,.8);color:#e8dcc8;font-size:12px;font-family:'Cinzel',serif;cursor:pointer;">
       <option value="all" ${_questFilter==='all'?'selected':''}>All Status</option>
       <option value="active" ${_questFilter==='active'?'selected':''}>Active Only</option>
-      <option value="standby" ${_questFilter==='standby'?'selected':''}>Standby Only</option>
+      <option value="standby" ${_questFilter==='standby'?'selected':''}>Standby Quests</option>
+      <option value="future" ${_questFilter==='future'?'selected':''}>Future Questing</option>
     </select>
   `;
   grid.insertAdjacentElement('beforebegin', tbDiv);
@@ -847,8 +848,15 @@ function renderQuestView() {
     let filtered = quests;
     if (_questFilter === 'active') filtered = filtered.filter(q => q.status === 'active');
     if (_questFilter === 'standby') filtered = filtered.filter(q => q.status !== 'active');
+    if (_questFilter === 'future') filtered = filtered.filter(q => q.status !== 'active');
     if (searchLower) filtered = filtered.filter(q => (q.title||'').toLowerCase().includes(searchLower) || (q.description||'').toLowerCase().includes(searchLower));
     return filtered;
+  }
+
+  // ── Future filter: block subquest drill-down ──
+  if (_questFilter === 'future' && _questView === 'subquests') {
+    _questView = 'mainquests';
+    _selectedMQ = null;
   }
 
   // ── LEVEL 1: Chapters ──
@@ -867,6 +875,12 @@ function renderQuestView() {
       const pct = totalSQ > 0 ? Math.round((activeCount / totalSQ) * 100) : 0;
       const roman = rom[ch - 1] || ch;
 
+      // Determine pill label based on filter
+      const isFuture = _questFilter === 'future';
+      const isStandbyFilter = _questFilter === 'standby';
+      const chPillLabel = isFuture ? 'FUTURE CHAPTER' : (isStandbyFilter ? 'STANDBY CHAPTER' : 'CHAPTER OVERVIEW');
+      const chPillCls = isFuture ? 'pp' : (isStandbyFilter ? 'pst' : 'pa');
+
       const card = document.createElement('div');
       card.className = 'cc';
       card.style.cursor = 'pointer';
@@ -884,10 +898,20 @@ function renderQuestView() {
           <div class="cmi">Total Players<span class="cmv" style="color:#6dba85">${totalPlayers}</span></div>
           <div class="cmi">Main Quests<span class="cmv">${totalMQ}</span></div>
         </div>
-        <span class="pill pa">CHAPTER OVERVIEW</span>
+        <span class="pill ${chPillCls}">${chPillLabel}</span>
       `;
       grid.appendChild(card);
     });
+
+    // + Add Chapter button
+    const addChBtn = document.createElement('div');
+    addChBtn.className = 'cc';
+    addChBtn.style.cssText = 'cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:180px;border:2px dashed #3d2d14;opacity:.7;transition:opacity .3s;';
+    addChBtn.onmouseenter = () => addChBtn.style.opacity = '1';
+    addChBtn.onmouseleave = () => addChBtn.style.opacity = '.7';
+    addChBtn.onclick = () => openQuestModal('chapter');
+    addChBtn.innerHTML = `<div style="text-align:center;"><div style="font-size:36px;color:#c9953a;">+</div><div style="font-family:'Cinzel',serif;color:#a89070;font-size:13px;margin-top:8px;">Add New Chapter</div></div>`;
+    grid.appendChild(addChBtn);
     return;
   }
 
@@ -917,10 +941,31 @@ function renderQuestView() {
         bulkBtnHTML = `<button class="ab aba" style="margin-top:10px;width:100%;border-radius:4px;font-size:11px;" onclick="event.stopPropagation();bulkSetStatus(${_selectedChapter},${mq},'active')">⚡ ACTIVATE ALL SUB QUESTS</button>`;
       }
 
+      // Future filter: no sub quest drill-down
+      const isFutureFilter = _questFilter === 'future';
+
       const card = document.createElement('div');
       card.className = `cc ${allStandby ? 'sb' : ''}`;
-      card.style.cursor = 'pointer';
-      card.onclick = () => { _selectedMQ = mq; _questView = 'subquests'; renderQuestView(); };
+      card.style.cursor = isFutureFilter ? 'default' : 'pointer';
+      if (!isFutureFilter) {
+        card.onclick = () => { _selectedMQ = mq; _questView = 'subquests'; renderQuestView(); };
+      }
+
+      // Status pill logic
+      let mqPillHTML;
+      if (isFutureFilter) {
+        mqPillHTML = `<span class="pill pp" style="letter-spacing:1px;">⏳ FUTURE QUEST</span>`;
+      } else if (allStandby) {
+        mqPillHTML = `<div class="sbov"><div class="sbtx">STANDBY</div></div><svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`;
+      } else {
+        mqPillHTML = `<span class="pill pa">ACTIVE</span>`;
+      }
+
+      // For future filter, hide sub quest info and bulk button
+      const mqSubInfo = isFutureFilter ? '' : `<div class="cmi">Sub Quests<span class="cmv">${mqQuests.length}</span></div>`;
+      const mqBulkBtn = isFutureFilter ? '' : `<div style="position:relative;z-index:10;">${bulkBtnHTML}</div>`;
+      const mqDrillHint = isFutureFilter ? `<div style="font-size:10px;color:#6b5740;margin-top:8px;font-style:italic;font-family:'Crimson Text',serif;">Sub quests not yet available</div>` : '';
+
       card.innerHTML = `
         <div class="cdec">${roman}</div>
         <div class="cnum">MAIN QUEST ${roman}</div>
@@ -932,16 +977,24 @@ function renderQuestView() {
         <div style="font-size:10px;color:#a89070;text-align:right;margin-bottom:6px;">${activeCount}/${mqQuests.length} Active</div>
         <div class="cmeta">
           <div class="cmi">Players<span class="cmv" style="color:#6dba85">${totalPlayers}</span></div>
-          <div class="cmi">Sub Quests<span class="cmv">${mqQuests.length}</span></div>
+          ${mqSubInfo}
         </div>
-        ${allStandby 
-          ? `<div class="sbov"><div class="sbtx">STANDBY</div></div><svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>`
-          : `<span class="pill pa">ACTIVE</span>`
-        }
-        <div style="position:relative;z-index:10;">${bulkBtnHTML}</div>
+        ${mqPillHTML}
+        ${mqBulkBtn}
+        ${mqDrillHint}
       `;
       grid.appendChild(card);
     });
+
+    // + Add Main Quest button
+    const addMQBtn = document.createElement('div');
+    addMQBtn.className = 'cc';
+    addMQBtn.style.cssText = 'cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:180px;border:2px dashed #3d2d14;opacity:.7;transition:opacity .3s;';
+    addMQBtn.onmouseenter = () => addMQBtn.style.opacity = '1';
+    addMQBtn.onmouseleave = () => addMQBtn.style.opacity = '.7';
+    addMQBtn.onclick = () => openQuestModal('mainquest');
+    addMQBtn.innerHTML = `<div style="text-align:center;"><div style="font-size:36px;color:#c9953a;">+</div><div style="font-family:'Cinzel',serif;color:#a89070;font-size:13px;margin-top:8px;">Add Main Quest</div></div>`;
+    grid.appendChild(addMQBtn);
     return;
   }
 
@@ -983,7 +1036,154 @@ function renderQuestView() {
       `;
       grid.appendChild(card);
     });
+
+    // + Add Sub Quest button
+    const addSQBtn = document.createElement('div');
+    addSQBtn.className = 'cc';
+    addSQBtn.style.cssText = 'cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:180px;border:2px dashed #3d2d14;opacity:.7;transition:opacity .3s;';
+    addSQBtn.onmouseenter = () => addSQBtn.style.opacity = '1';
+    addSQBtn.onmouseleave = () => addSQBtn.style.opacity = '.7';
+    addSQBtn.onclick = () => openQuestModal('subquest');
+    addSQBtn.innerHTML = `<div style="text-align:center;"><div style="font-size:36px;color:#c9953a;">+</div><div style="font-family:'Cinzel',serif;color:#a89070;font-size:13px;margin-top:8px;">Add Sub Quest</div></div>`;
+    grid.appendChild(addSQBtn);
     return;
+  }
+}
+
+// ============================
+// QUEST CREATE MODAL
+// ============================
+function ensureQuestModal() {
+  if (document.getElementById('quest-modal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'quest-modal';
+  modal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#1a150e;border:1px solid #3d2d14;border-radius:12px;padding:32px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <h3 id="qm-title" style="margin:0;font-family:'Cinzel',serif;color:#e8b84b;font-size:18px;letter-spacing:2px;">Create Quest</h3>
+        <span onclick="closeQuestModal()" style="cursor:pointer;color:#6b5740;font-size:22px;">&times;</span>
+      </div>
+      <div id="qm-body"></div>
+      <div id="qm-error" style="color:#e85c5c;font-size:12px;margin-top:12px;display:none;"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="closeQuestModal()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #3d2d14;background:transparent;color:#a89070;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;">Cancel</button>
+        <button id="qm-submit" onclick="submitQuestModal()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #7a5820;background:rgba(201,149,58,.15);color:#e8b84b;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;">Create</button>
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) closeQuestModal(); });
+  document.body.appendChild(modal);
+}
+
+let _modalType = '';
+
+function openQuestModal(type) {
+  ensureQuestModal();
+  _modalType = type;
+  const title = document.getElementById('qm-title');
+  const body = document.getElementById('qm-body');
+  const errEl = document.getElementById('qm-error');
+  errEl.style.display = 'none';
+
+  const inputStyle = `width:100%;padding:10px 14px;border-radius:6px;border:1px solid #3d2d14;background:rgba(10,8,5,.6);color:#e8dcc8;font-size:13px;font-family:'Cinzel',serif;outline:none;box-sizing:border-box;margin-top:6px;`;
+  const labelStyle = `display:block;color:#a89070;font-size:11px;font-family:'Cinzel',serif;letter-spacing:1px;margin-top:14px;`;
+
+  if (type === 'chapter') {
+    title.textContent = '⚜ Add New Chapter';
+    const nextCh = _allQuests.length > 0 ? Math.max(..._allQuests.map(q => q.chapter)) + 1 : 1;
+    body.innerHTML = `
+      <label style="${labelStyle}">CHAPTER NUMBER</label>
+      <input id="qm-chapter" type="number" value="${nextCh}" style="${inputStyle}">
+      <label style="${labelStyle}">CHAPTER TITLE</label>
+      <input id="qm-ch-title" type="text" placeholder="e.g. El Filibusterismo" style="${inputStyle}">
+      <p style="color:#6b5740;font-size:11px;margin-top:14px;">This will create 7 Main Quests × 5 Sub Quests (35 total) under this chapter, all on standby.</p>
+    `;
+  } else if (type === 'mainquest') {
+    const chQuests = _allQuests.filter(q => q.chapter === _selectedChapter);
+    const nextMQ = chQuests.length > 0 ? Math.max(...chQuests.map(q => q.main_quest)) + 1 : 1;
+    title.textContent = '⚜ Add Main Quest';
+    body.innerHTML = `
+      <label style="${labelStyle}">CHAPTER</label>
+      <input type="text" disabled value="Chapter ${_selectedChapter}" style="${inputStyle}opacity:.5;">
+      <label style="${labelStyle}">MAIN QUEST NUMBER</label>
+      <input id="qm-mq-num" type="number" value="${nextMQ}" style="${inputStyle}">
+      <p style="color:#6b5740;font-size:11px;margin-top:14px;">This will create 5 Sub Quests under this Main Quest, all on standby.</p>
+    `;
+  } else if (type === 'subquest') {
+    const sqQuests = _allQuests.filter(q => q.chapter === _selectedChapter && q.main_quest === _selectedMQ);
+    const nextSQ = sqQuests.length > 0 ? Math.max(...sqQuests.map(q => q.sub_quest)) + 1 : 1;
+    title.textContent = '⚜ Add Sub Quest';
+    body.innerHTML = `
+      <label style="${labelStyle}">CHAPTER / MAIN QUEST</label>
+      <input type="text" disabled value="Chapter ${_selectedChapter} › Main Quest ${_selectedMQ}" style="${inputStyle}opacity:.5;">
+      <label style="${labelStyle}">SUB QUEST NUMBER</label>
+      <input id="qm-sq-num" type="number" value="${nextSQ}" style="${inputStyle}">
+      <label style="${labelStyle}">TITLE</label>
+      <input id="qm-sq-title" type="text" placeholder="e.g. On the Upper Deck" style="${inputStyle}">
+      <label style="${labelStyle}">DESCRIPTION</label>
+      <textarea id="qm-sq-desc" rows="3" placeholder="Quest description..." style="${inputStyle}resize:vertical;"></textarea>
+      <label style="${labelStyle}">STATUS</label>
+      <select id="qm-sq-status" style="${inputStyle}cursor:pointer;">
+        <option value="active">Active</option>
+        <option value="standby" selected>Standby</option>
+      </select>
+    `;
+  }
+
+  document.getElementById('quest-modal').style.display = 'flex';
+}
+
+function closeQuestModal() {
+  const m = document.getElementById('quest-modal');
+  if (m) m.style.display = 'none';
+}
+
+async function submitQuestModal() {
+  const errEl = document.getElementById('qm-error');
+  errEl.style.display = 'none';
+
+  try {
+    if (_modalType === 'chapter') {
+      const ch = parseInt(document.getElementById('qm-chapter').value);
+      if (!ch || ch < 1) throw new Error('Enter a valid chapter number');
+      // Create 7 main quests × 5 sub quests = 35 quests
+      for (let mq = 1; mq <= 7; mq++) {
+        await apiCall('/quests/batch-main-quest', 'POST', { chapter: ch, main_quest: mq, status: 'standby' });
+      }
+      showT(`Chapter ${ch} created with 35 sub quests!`, 'success');
+
+    } else if (_modalType === 'mainquest') {
+      const mqNum = parseInt(document.getElementById('qm-mq-num').value);
+      if (!mqNum || mqNum < 1) throw new Error('Enter a valid main quest number');
+      const res = await apiCall('/quests/batch-main-quest', 'POST', { chapter: _selectedChapter, main_quest: mqNum, status: 'standby' });
+      if (res.error) throw new Error(res.error);
+      showT(`Main Quest ${mqNum} created with 5 sub quests!`, 'success');
+
+    } else if (_modalType === 'subquest') {
+      const sqNum = parseInt(document.getElementById('qm-sq-num').value);
+      const title = document.getElementById('qm-sq-title').value || 'Standby';
+      const desc = document.getElementById('qm-sq-desc').value || '';
+      const status = document.getElementById('qm-sq-status').value;
+      if (!sqNum || sqNum < 1) throw new Error('Enter a valid sub quest number');
+      const res = await apiCall('/quests', 'POST', {
+        chapter: _selectedChapter, main_quest: _selectedMQ, sub_quest: sqNum,
+        title, description: desc, status
+      });
+      if (res.error) throw new Error(res.error);
+      showT(`Sub Quest ${sqNum} created!`, 'success');
+    }
+
+    closeQuestModal();
+    // Refresh data in place
+    let questsData = await apiCall('/quests');
+    if (questsData.quests) questsData = questsData.quests;
+    if (!Array.isArray(questsData)) questsData = [];
+    _allQuests = questsData;
+    renderQuestView();
+  } catch (err) {
+    errEl.textContent = err.message || 'Failed to create quest';
+    errEl.style.display = 'block';
   }
 }
 
