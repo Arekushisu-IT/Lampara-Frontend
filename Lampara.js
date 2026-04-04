@@ -1149,14 +1149,14 @@ async function submitQuestModal() {
       if (!ch || ch < 1) throw new Error('Enter a valid chapter number');
       // Create 7 main quests × 5 sub quests = 35 quests
       for (let mq = 1; mq <= 7; mq++) {
-        await apiCall('/quests/batch-main-quest', 'POST', { chapter: ch, main_quest: mq, status: 'standby' });
+        await apiCall('/quests/batch-main-quest', { method: 'POST', body: JSON.stringify({ chapter: ch, main_quest: mq, status: 'standby' }) });
       }
       showT(`Chapter ${ch} created with 35 sub quests!`, 'success');
 
     } else if (_modalType === 'mainquest') {
       const mqNum = parseInt(document.getElementById('qm-mq-num').value);
       if (!mqNum || mqNum < 1) throw new Error('Enter a valid main quest number');
-      const res = await apiCall('/quests/batch-main-quest', 'POST', { chapter: _selectedChapter, main_quest: mqNum, status: 'standby' });
+      const res = await apiCall('/quests/batch-main-quest', { method: 'POST', body: JSON.stringify({ chapter: _selectedChapter, main_quest: mqNum, status: 'standby' }) });
       if (res.error) throw new Error(res.error);
       showT(`Main Quest ${mqNum} created with 5 sub quests!`, 'success');
 
@@ -1166,10 +1166,10 @@ async function submitQuestModal() {
       const desc = document.getElementById('qm-sq-desc').value || '';
       const status = document.getElementById('qm-sq-status').value;
       if (!sqNum || sqNum < 1) throw new Error('Enter a valid sub quest number');
-      const res = await apiCall('/quests', 'POST', {
+      const res = await apiCall('/quests', { method: 'POST', body: JSON.stringify({
         chapter: _selectedChapter, main_quest: _selectedMQ, sub_quest: sqNum,
         title, description: desc, status
-      });
+      }) });
       if (res.error) throw new Error(res.error);
       showT(`Sub Quest ${sqNum} created!`, 'success');
     }
@@ -1189,7 +1189,7 @@ async function submitQuestModal() {
 
 window.setQuestStatus = async function(id, newStatus) {
   try {
-    const res = await apiCall(`/quests/${id}`, 'PUT', { status: newStatus });
+    const res = await apiCall(`/quests/${id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
     if (res.error) throw new Error(res.error);
     showT(`Quest successfully set to ${newStatus.toUpperCase()}`, 'success');
     
@@ -1206,7 +1206,7 @@ window.setQuestStatus = async function(id, newStatus) {
 
 window.bulkSetStatus = async function(chapter, mainQuest, newStatus) {
   try {
-    const res = await apiCall(`/quests/bulk-status/${chapter}/${mainQuest}`, 'PUT', { status: newStatus });
+    const res = await apiCall(`/quests/bulk-status/${chapter}/${mainQuest}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
     if (res.error) throw new Error(res.error);
     showT(`${res.affected || 'All'} sub quests set to ${newStatus.toUpperCase()}`, 'success');
     
