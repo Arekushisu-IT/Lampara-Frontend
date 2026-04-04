@@ -745,11 +745,13 @@ function renderPlayerRegistry(players) {
     const displayStatus = isBanned ? 'SUSPENDED' : (isPending ? 'PENDING' : 'ACTIVE');
     
     const initials = p.name.substring(0, 2).toUpperCase();
-    const progressPct = Math.min(100, Math.round((p.experience / ((p.level || 1) * 1000)) * 100)) || 0;
+    // Map sub-quests to progress percentage (Assuming ~5 subquests per chapter for visual scale)
+    const subQuestsDone = p.current_sub_quest || 0;
+    const progressPct = Math.min(100, subQuestsDone * 20);
     
     const email = p.email || 'Unassigned';
 
-    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','Lvl ${p.level || 1}','0','${progressPct}%')">VIEW</button>`;
+    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','Ch.${p.chapter || 1} M${p.current_quest_id || 1} S${p.current_sub_quest || 0}','0','${progressPct}%')">VIEW</button>`;
     
     if (p.status === 'active') {
       actionHTML += `<button class="ab absu" onclick="updatePlayerStatus(${p.id}, '${p.name.replace(/'/g, "\\'")}', 'banned', 'Suspended')">SUSPEND</button>`;
@@ -774,7 +776,7 @@ function renderPlayerRegistry(players) {
       <td>${esc(email)}</td>
       <td><span class="pill ${pillCls}">${displayStatus}</span></td>
       <td>
-        <div class="plbl">Lvl ${p.level || 1}</div>
+        <div class="plbl">Ch.${p.chapter || 1} Q${p.current_quest_id || 1}-${p.current_sub_quest || 0}</div>
         <div class="pbar"><div class="pfill" style="width:${progressPct}%"></div></div>
       </td>
       <td><span class="mono-sm gold-txt">${progressPct}%</span></td>
