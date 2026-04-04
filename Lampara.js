@@ -635,6 +635,30 @@ async function fetchAndRenderPlayers() {
     renderPlayerRegistry(players);
 
     const pendingCount = players.filter(p => p.status === 'inactive' || p.status === 'pending').length;
+    const activeCount = players.filter(p => p.status === 'active').length;
+    const suspendedCount = players.filter(p => p.status === 'banned').length;
+    const activeSessions = players.filter(p => p.is_online).length;
+
+    // --- Dynamic DOM Updates for Hardcoded Values ---
+    const totalPlayersEl = document.getElementById('stat-total-players');
+    if (totalPlayersEl) totalPlayersEl.textContent = players.length;
+
+    const pendingEl = document.getElementById('stat-pending-approvals');
+    if (pendingEl) pendingEl.textContent = pendingCount;
+
+    const activeSessEl = document.getElementById('stat-active-sessions');
+    if (activeSessEl) activeSessEl.textContent = activeSessions;
+
+    const plTotalEl = document.getElementById('stat-pl-total');
+    if (plTotalEl) plTotalEl.textContent = players.length;
+
+    const plActiveEl = document.getElementById('stat-pl-active');
+    if (plActiveEl) plActiveEl.textContent = activeCount;
+
+    const plSuspEl = document.getElementById('stat-pl-susp');
+    if (plSuspEl) plSuspEl.textContent = suspendedCount;
+    // ------------------------------------------------
+
     const badge = document.getElementById('notif-badge');
     
     if (badge) {
@@ -778,6 +802,18 @@ async function fetchAndRenderQuests() {
     if (!Array.isArray(questsData)) questsData = [];
 
     _allQuests = questsData;
+
+    // --- Dynamic DOM Updates for Quest Chapters Header ---
+    const activeQuests = _allQuests.filter(q => q.status === 'active').length;
+    const standbyQuests = _allQuests.filter(q => q.status !== 'active').length;
+    const qtChapEl = document.getElementById('stat-qt-chap');
+    if (qtChapEl) qtChapEl.textContent = `${activeQuests} ACTIVE · ${standbyQuests} STANDBY`;
+
+    const liveChapters = [...new Set(_allQuests.filter(q => q.status === 'active').map(q => q.chapter))].length;
+    const statChaptersLiveEl = document.getElementById('stat-chapters-live');
+    if (statChaptersLiveEl) statChaptersLiveEl.innerHTML = `${liveChapters}<span style="font-size:12px;color:var(--td)">/${Math.max(13, liveChapters)}</span>`;
+    // ---------------------------------------------------
+
     _questView = 'chapters';
     _selectedChapter = null;
     _selectedMQ = null;

@@ -197,23 +197,23 @@
         <div class="srow">
           <div class="sc">
             <div class="slbl">Total Players</div>
-            <div class="sval">142</div>
+            <div class="sval" id="stat-total-players">0</div>
             <div class="ssub">+12 this week</div>
             <div class="sico"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1z"/></svg></div>
           </div>
           <div class="sc">
             <div class="slbl">Pending</div>
-            <div class="sval" style="color:#e8b84b">3</div>
+            <div class="sval" id="stat-pending-approvals" style="color:#e8b84b">0</div>
             <div class="ssub">Awaiting review</div>
           </div>
           <div class="sc">
             <div class="slbl">Active Sessions</div>
-            <div class="sval" style="color:#6dba85">18</div>
+            <div class="sval" id="stat-active-sessions" style="color:#6dba85">0</div>
             <div class="ssub">Currently playing</div>
           </div>
           <div class="sc">
             <div class="slbl">Chapters Live</div>
-            <div class="sval">4<span style="font-size:12px;color:var(--td)">/13</span></div>
+            <div class="sval" id="stat-chapters-live">0<span style="font-size:12px;color:var(--td)">/13</span></div>
             <div class="ssub">El Filibusterismo</div>
           </div>
         </div>
@@ -234,9 +234,9 @@
 
       <div class="panel" id="panel-pl">
         <div class="srow" style="grid-template-columns:repeat(3,1fr)">
-          <div class="sc"><div class="slbl">Total Enrolled</div><div class="sval">142</div><div class="ssub">All registered</div></div>
-          <div class="sc"><div class="slbl">Active</div><div class="sval" style="color:#6dba85">127</div><div class="ssub">Approved accounts</div></div>
-          <div class="sc"><div class="slbl">Suspended</div><div class="sval" style="color:#e06060">8</div><div class="ssub">Cover blown (100pts)</div></div>
+          <div class="sc"><div class="slbl">Total Enrolled</div><div class="sval" id="stat-pl-total">0</div><div class="ssub">All registered</div></div>
+          <div class="sc"><div class="slbl">Active</div><div class="sval" id="stat-pl-active" style="color:#6dba85">0</div><div class="ssub">Approved accounts</div></div>
+          <div class="sc"><div class="slbl">Suspended</div><div class="sval" id="stat-pl-susp" style="color:#e06060">0</div><div class="ssub">Cover blown (100pts)</div></div>
         </div>
         <div class="shdr"><h2>ALL PLAYERS</h2><div class="orn"></div></div>
         <div class="tw">
@@ -306,7 +306,7 @@
       </div>
 
       <div class="panel" id="panel-qt">
-        <div class="shdr"><h2>EL FILIBUSTERISMO — CHAPTER QUESTS</h2><div class="orn"></div><span class="chap-stat-lbl">4 ACTIVE · 9 STANDBY</span></div>
+        <div class="shdr"><h2>EL FILIBUSTERISMO — CHAPTER QUESTS</h2><div class="orn"></div><span class="chap-stat-lbl" id="stat-qt-chap">0 ACTIVE · 0 STANDBY</span></div>
         <div class="cgrid">
           <div class="cc" onclick="showT('Ch.1 config opened','success')"><div class="cdec">I</div><div class="cnum">CHAPTER I</div><div class="ctit">On the Deck of a Ship</div><div class="csub">Simoun reveals himself; the journey begins</div><div class="cmeta"><div class="cmi">Reached<span class="cmv" style="color:#6dba85">142</span></div><div class="cmi">Avg Fails<span class="cmv">1.2</span></div></div><span class="pill pa">ACTIVE</span></div>
           <div class="cc" onclick="showT('Ch.2 config opened','success')"><div class="cdec">II</div><div class="cnum">CHAPTER II</div><div class="ctit">Simoun's Identity</div><div class="csub">The disguised Ibarra navigates colonial society</div><div class="cmeta"><div class="cmi">Reached<span class="cmv" style="color:#6dba85">138</span></div><div class="cmi">Avg Fails<span class="cmv">2.7</span></div></div><span class="pill pa">ACTIVE</span></div>
