@@ -15,9 +15,7 @@ function esc(str) {
 }
 
 const ROLE_META = {
-  admin: { lbl: '⚜ ADMIN', cls: 'rp-admin' },
-  staff: { lbl: '⚕ STAFF', cls: 'rp-staff' },
-  user:  { lbl: '☺ USER',  cls: 'rp-user'  }
+  admin: { lbl: '⚜ ADMIN', cls: 'rp-admin' }
 };
 
 const API_CONFIG = {

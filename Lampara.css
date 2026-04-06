@@ -300,8 +300,6 @@ body {
   padding: 2px 6px; border-radius: 10px; margin-top: 2px;
 }
 .rp-admin  { background: rgba(201,149,58,.2);   color: var(--goldl); border: 1px solid rgba(201,149,58,.4); }
-.rp-adm { background: rgba(100,140,200,.2);  color: #90b0e0;      border: 1px solid rgba(100,140,200,.4); }
-.rp-mod { background: rgba(100,180,120,.15); color: #80cc96;      border: 1px solid rgba(100,180,120,.35); }
 
 /* Logout button */
 .lout {
