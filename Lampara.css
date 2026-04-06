@@ -485,6 +485,50 @@ tbody td { padding: 9px 13px; font-size: 12px; color: var(--ts); }
 .abd:hover  { background: rgba(107,16,16,.25); }
 
 /*  CHAPTER CARDS  */
+/* Chapter Tabs */
+.chapter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bdr);
+}
+.chapter-tab {
+  padding: 8px 16px;
+  background: var(--bgc);
+  border: 1px solid var(--bdrg);
+  border-radius: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--td);
+  cursor: pointer;
+  transition: all .25s;
+  position: relative;
+}
+.chapter-tab:hover {
+  border-color: var(--goldd);
+  color: var(--goldl);
+}
+.chapter-tab.active {
+  background: linear-gradient(135deg, rgba(201,149,58,.15), rgba(201,149,58,.05));
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 12px rgba(201,149,58,.1);
+}
+.chapter-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -13px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gold);
+}
+.chapter-tab.standby {
+  opacity: .5;
+}
+
 /* each row of cards aligns to top so short cards don't stretch */
 .cgrid {
   display: grid;

@@ -2,82 +2,175 @@
 // QUESTS - Dynamic Quest Management
 // ============================================================
 
+let currentChapter = 1;
+let allQuests = [];
+
+// Initialize chapter tab listeners
+function initChapterTabs() {
+  const tabs = document.querySelectorAll('.chapter-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const chapter = parseInt(tab.dataset.chapter);
+      switchChapter(chapter);
+    });
+  });
+}
+
+// Switch to a different chapter
+function switchChapter(chapterNum) {
+  currentChapter = chapterNum;
+  
+  // Update tab active states
+  const tabs = document.querySelectorAll('.chapter-tab');
+  tabs.forEach(tab => {
+    const tabChapter = parseInt(tab.dataset.chapter);
+    if (tabChapter === chapterNum) {
+      tab.classList.add('active');
+      tab.classList.remove('standby');
+    } else {
+      tab.classList.remove('active');
+      // Mark chapters 2-5 as standby
+      if (tabChapter > 1) {
+        tab.classList.add('standby');
+      }
+    }
+  });
+
+  // Render quests for the selected chapter
+  renderChapterQuests(chapterNum);
+}
+
+// Render quests for a specific chapter
+function renderChapterQuests(chapterNum) {
+  const container = document.getElementById('quests-grid');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  // Chapter 1: Show quests from database
+  if (chapterNum === 1) {
+    renderChapter1Quests(container);
+  } else {
+    // Chapters 2-5: Show "Awaiting Storyboard" for all 7 main quests
+    renderStandbyChapter(container, chapterNum);
+  }
+}
+
+// Render Chapter 1 quests from database
+function renderChapter1Quests(container) {
+  // Filter for Chapter 1
+  const chapter1Quests = allQuests.filter(q => q.chapter === 1);
+
+  // Group by Main Quest (1 to 7)
+  const mainQuests = [];
+  for (let mq = 1; mq <= 7; mq++) {
+    const subs = chapter1Quests.filter(q => q.main_quest === mq);
+    const isActive = subs.length === 5 && subs.every(sq => sq.status === 'active');
+    mainQuests.push({ id: mq, subs, isActive });
+  }
+
+  // Render the cards
+  mainQuests.forEach(mq => {
+    const activeCount = mq.subs.filter(sq => sq.status === 'active').length;
+    const progressPct = Math.round((activeCount / 5) * 100);
+
+    const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][mq.id - 1];
+    const title = mq.isActive && mq.subs[0] ? mq.subs[0].title : 'Awaiting Storyboard';
+    const statusClass = mq.isActive ? 'pa' : 'pp';
+    const statusText = mq.isActive ? 'ACTIVE' : 'STANDBY';
+
+    const card = document.createElement('div');
+    card.className = `cc ${!mq.isActive ? 'sb' : ''}`;
+
+    card.innerHTML = `
+      <div class="cdec">${roman}</div>
+      <div class="cnum">MAIN QUEST ${mq.id}</div>
+      <div class="ctit">${esc(title)}</div>
+      <div class="csub">${activeCount}/5 Sub-Quests</div>
+      <div class="cmeta">
+        <div class="cmi">Progress<span class="cmv">${progressPct}%</span></div>
+      </div>
+      <span class="pill ${statusClass}">${statusText}</span>
+
+      ${!mq.isActive ? `
+        <div class="sbov">
+          <div class="sbtx">STANDBY</div>
+        </div>
+        <svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+        </svg>
+      ` : ''}
+    `;
+
+    card.onclick = () => {
+      if (mq.isActive) {
+        openSubQuestModal(mq);
+      }
+    };
+    container.appendChild(card);
+  });
+
+  // Update header stats
+  updateChapterStats(chapter1Quests);
+}
+
+// Render standby chapters (2-5)
+function renderStandbyChapter(container, chapterNum) {
+  const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  
+  for (let mq = 1; mq <= 7; mq++) {
+    const card = document.createElement('div');
+    card.className = 'cc sb';
+
+    card.innerHTML = `
+      <div class="cdec">${roman[mq - 1]}</div>
+      <div class="cnum">MAIN QUEST ${mq}</div>
+      <div class="ctit">Awaiting Storyboard</div>
+      <div class="csub">0/5 Sub-Quests</div>
+      <div class="cmeta">
+        <div class="cmi">Progress<span class="cmv">0%</span></div>
+      </div>
+      <span class="pill pp">STANDBY</span>
+      
+      <div class="sbov">
+        <div class="sbtx">STANDBY</div>
+      </div>
+      <svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+      </svg>
+    `;
+
+    container.appendChild(card);
+  }
+
+  // Update header stats for standby chapters
+  updateChapterStats([]);
+}
+
+// Update chapter statistics
+function updateChapterStats(quests) {
+  const statLbl = document.getElementById('stat-qt-chap');
+  if (statLbl) {
+    const activeCount = quests.filter(q => q.status === 'active').length;
+    statLbl.textContent = `${activeCount} ACTIVE · ${quests.length - activeCount} STANDBY`;
+  }
+}
+
+// Main function to fetch and render quests
 async function fetchAndRenderQuests() {
   try {
-    // 1. Fetch all quests from the database
+    // Fetch all quests from the database
     let quests = await apiCall('/quests');
     if (quests.quests) quests = quests.quests;
     if (!Array.isArray(quests)) quests = [];
-
-    // 2. Filter for Chapter 1 (Currently hardcoded to Ch.1)
-    const chapter1Quests = quests.filter(q => q.chapter === 1);
     
-    // 3. Group by Main Quest (1 to 7)
-    const mainQuests = [];
-    for (let mq = 1; mq <= 7; mq++) {
-      const subs = chapter1Quests.filter(q => q.main_quest === mq);
-      // A Main Quest is "Active" only if all 5 sub-quests are active
-      const isActive = subs.length === 5 && subs.every(sq => sq.status === 'active');
-      mainQuests.push({ id: mq, subs, isActive });
-    }
+    allQuests = quests;
 
-    // 4. Render the cards
-    const container = document.getElementById('quests-grid');
-    if (container) {
-      container.innerHTML = ''; // Clear existing content
-      
-      mainQuests.forEach(mq => {
-        const activeCount = mq.subs.filter(sq => sq.status === 'active').length;
-        const progressPct = Math.round((activeCount / 5) * 100);
-        
-        // Determine display details
-        const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][mq.id - 1];
-        // If inactive, show "Awaiting Storyboard", otherwise show first sub-quest title
-        const title = mq.isActive && mq.subs[0] ? mq.subs[0].title : 'Awaiting Storyboard';
-        const statusClass = mq.isActive ? 'pa' : 'pp';
-        const statusText = mq.isActive ? 'ACTIVE' : 'STANDBY';
+    // Initialize chapter tabs
+    initChapterTabs();
 
-        // Create Card Element
-        const card = document.createElement('div');
-        // Add 'sb' class for Standby styling (grayed out, locked)
-        card.className = `cc ${!mq.isActive ? 'sb' : ''}`;
-        
-        card.innerHTML = `
-          <div class="cdec">${roman}</div>
-          <div class="cnum">MAIN QUEST ${mq.id}</div>
-          <div class="ctit">${esc(title)}</div>
-          <div class="csub">${activeCount}/5 Sub-Quests</div>
-          <div class="cmeta">
-            <div class="cmi">Progress<span class="cmv">${progressPct}%</span></div>
-          </div>
-          <span class="pill ${statusClass}">${statusText}</span>
-          
-          ${!mq.isActive ? `
-            <div class="sbov">
-              <div class="sbtx">STANDBY</div>
-            </div>
-            <svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-            </svg>
-          ` : ''}
-        `;
-        
-        // Click event - open sub-quest modal
-        card.onclick = () => {
-          if (mq.isActive) {
-            openSubQuestModal(mq);
-          }
-        };
-        container.appendChild(card);
-      });
-    }
-    
-    // Update Header Stats
-    const statLbl = document.getElementById('stat-qt-chap');
-    if (statLbl) {
-      const activeCount = quests.filter(q => q.status === 'active').length;
-      statLbl.textContent = `${activeCount} ACTIVE · ${quests.length - activeCount} STANDBY`;
-    }
+    // Render current chapter (default: Chapter 1)
+    renderChapterQuests(currentChapter);
 
   } catch (err) {
     console.error('Failed to load quests:', err);
