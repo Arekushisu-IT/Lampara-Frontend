@@ -29,8 +29,8 @@ function switchChapter(chapterNum) {
       tab.classList.remove('standby');
     } else {
       tab.classList.remove('active');
-      // Mark chapters 2-5 as standby
-      if (tabChapter > 1) {
+      // Mark chapters 3-5 as standby
+      if (tabChapter > 2) {
         tab.classList.add('standby');
       }
     }
@@ -47,24 +47,24 @@ function renderChapterQuests(chapterNum) {
 
   container.innerHTML = '';
 
-  // Chapter 1: Show quests from database
-  if (chapterNum === 1) {
-    renderChapter1Quests(container);
+  // Chapter 1 & 2: Show quests from database if available
+  if (chapterNum === 1 || chapterNum === 2) {
+    renderChapterQuestsFromDB(container, chapterNum);
   } else {
-    // Chapters 2-5: Show "Awaiting Storyboard" for all 7 main quests
+    // Chapters 3-5: Show "Awaiting Storyboard" for all 7 main quests
     renderStandbyChapter(container, chapterNum);
   }
 }
 
-// Render Chapter 1 quests from database
-function renderChapter1Quests(container) {
-  // Filter for Chapter 1
-  const chapter1Quests = allQuests.filter(q => q.chapter === 1);
+// Render chapter quests from database
+function renderChapterQuestsFromDB(container, chapterNum) {
+  // Filter for the selected chapter
+  const chapterQuests = allQuests.filter(q => q.chapter === chapterNum);
 
   // Group by Main Quest (1 to 7)
   const mainQuests = [];
   for (let mq = 1; mq <= 7; mq++) {
-    const subs = chapter1Quests.filter(q => q.main_quest === mq);
+    const subs = chapterQuests.filter(q => q.main_quest === mq);
     const isActive = subs.length === 5 && subs.every(sq => sq.status === 'active');
     mainQuests.push({ id: mq, subs, isActive });
   }
@@ -111,10 +111,10 @@ function renderChapter1Quests(container) {
   });
 
   // Update header stats
-  updateChapterStats(chapter1Quests);
+  updateChapterStats(chapterQuests);
 }
 
-// Render standby chapters (2-5)
+// Render standby chapters (3-5)
 function renderStandbyChapter(container, chapterNum) {
   const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
   
