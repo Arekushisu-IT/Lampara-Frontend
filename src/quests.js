@@ -48,6 +48,7 @@ function renderChapterQuests(chapterNum) {
   container.innerHTML = '';
 
   // Chapter 1 & 2: Show quests from database if available
+  // All main quests (MQ1, MQ2, etc.) within the same chapter are loaded from DB
   if (chapterNum === 1 || chapterNum === 2) {
     renderChapterQuestsFromDB(container, chapterNum);
   } else {
