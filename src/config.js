@@ -5,7 +5,7 @@
 const ACCOUNTS = {};
 
 const API_CONFIG = {
-  baseUrl: 'https://api.lampara.life/api',
+  baseUrl: 'https://lampara-production.up.railway.app/api',
 };
 
 const ROLE_META = {
