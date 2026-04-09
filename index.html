@@ -1,518 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LAMPARA — Admin Panel</title>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="Lampara.css">
-</head>
+  <title>LAMPARA — Enter the Archive</title>
+  <meta name="description" content="LAMPARA: An interactive journey through El Filibusterismo. Sign in to begin.">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0805; --bgp: #100d08; --bgc: #16120b; --bgh: #1e1810;
+      --gold: #c9953a; --goldl: #e8b84b; --goldd: #7a5820;
+      --gok: #2d6a3f; --crim: #8b2020;
+      --tp: #e8dcc8; --ts: #a89070; --td: #6b5740;
+      --bdr: #2e2218; --bdrg: #3d2d14;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Crimson Text', Georgia, serif;
+      background: var(--bg); color: var(--tp);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(ellipse 70% 60% at 50% -5%, rgba(201,149,58,.09) 0%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9953a' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
 
+    /* Particles */
+    .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .particle { position: absolute; width: 2px; height: 2px; background: var(--goldl); border-radius: 50%; opacity: 0; animation: float linear infinite; }
+    @keyframes float { 0% { opacity: 0; transform: translateY(100vh) scale(0); } 10% { opacity: .6; } 90% { opacity: .2; } 100% { opacity: 0; transform: translateY(-10vh) scale(1); } }
+
+    .wrap {
+      position: relative; z-index: 1;
+      width: 560px; max-width: 92vw;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 0;
+      animation: appear .8s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes appear { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Brand */
+    .brand { display: flex; flex-direction: column; align-items: center; margin-bottom: 28px; text-align: center; }
+    .lamp-wrap { position: relative; margin-bottom: 16px; }
+    .lamp-svg {
+      width: 80px; height: 80px;
+      filter: drop-shadow(0 0 20px rgba(201,149,58,.5));
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { filter: drop-shadow(0 0 14px rgba(201,149,58,.4)); } 50% { filter: drop-shadow(0 0 32px rgba(232,184,75,.75)); } }
+    .lamp-ring { position: absolute; inset: -12px; border: 1px solid rgba(201,149,58,.15); border-radius: 50%; animation: ring-pulse 3s ease-in-out infinite; }
+    .lamp-ring-2 { position: absolute; inset: -24px; border: 1px solid rgba(201,149,58,.07); border-radius: 50%; animation: ring-pulse 3s ease-in-out infinite .4s; }
+    @keyframes ring-pulse { 0%,100% { opacity: .4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+    
+    .title {
+      font-family: 'Cinzel', serif;
+      font-size: 36px; font-weight: 900; letter-spacing: 12px;
+      background: linear-gradient(135deg, var(--goldl), var(--gold), var(--goldd));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      line-height: 1; margin-bottom: 8px;
+    }
+    .subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 4px; color: var(--td); text-transform: uppercase;
+    }
+
+    /* Divider */
+    .divider { width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .divl { flex: 1; height: 1px; }
+    .divl.a { background: linear-gradient(90deg, transparent, var(--bdrg)); }
+    .divl.b { background: linear-gradient(90deg, var(--bdrg), transparent); }
+    .divsym { font-family: 'Cinzel', serif; font-size: 14px; color: var(--goldd); }
+
+    /* Quote */
+    .quote {
+      font-family: 'Crimson Text', serif;
+      font-style: italic;
+      font-size: 16px; line-height: 1.6;
+      color: var(--ts);
+      text-align: center;
+      max-width: 400px;
+      margin-bottom: 24px;
+    }
+    .quote-src {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-style: normal;
+      font-size: 10px; letter-spacing: 1px;
+      color: var(--td);
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 1.5px;
+      color: #6dba85;
+      background: rgba(45,106,63,.1);
+      border: 1px solid rgba(45,106,63,.3);
+      border-radius: 4px;
+      padding: 6px 14px;
+      margin-bottom: 28px;
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      background: #6dba85;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(109,186,133,.6);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+    /* Enter Button */
+    .enter-btn {
+      font-family: 'Cinzel', serif;
+      font-size: 14px; font-weight: 700; letter-spacing: 4px;
+      color: var(--goldl);
+      text-decoration: none;
+      text-transform: uppercase;
+      padding: 12px 32px;
+      border: 1px solid var(--goldd);
+      border-radius: 4px;
+      background: transparent;
+      transition: all .3s ease;
+      display: inline-block;
+      margin-bottom: 28px;
+    }
+    .enter-btn:hover {
+      border-color: var(--gold);
+      color: #fff8e8;
+      box-shadow: 0 0 24px rgba(201,149,58,.25);
+      transform: translateY(-1px);
+    }
+    .enter-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Footer */
+    .foot {
+      margin-top: 28px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--td); letter-spacing: 1.5px;
+      text-align: center; line-height: 2;
+    }
+
+    /* ─── RESPONSIVE ─── */
+
+    /* Tablet */
+    @media (max-width: 768px) {
+      .wrap { width: 92vw; padding: 20px 0; }
+      .lamp-svg { width: 64px; height: 64px; }
+      .title { font-size: 28px; letter-spacing: 8px; }
+      .quote { font-size: 15px; }
+      .enter-btn { font-size: 13px; padding: 10px 28px; }
+    }
+
+    /* Mobile */
+    @media (max-width: 480px) {
+      .wrap { width: 100%; padding: 16px 0; }
+      .brand { margin-bottom: 20px; }
+      .lamp-svg { width: 48px; height: 48px; }
+      .lamp-ring { inset: -8px; }
+      .lamp-ring-2 { inset: -16px; }
+      .title { font-size: 22px; letter-spacing: 5px; }
+      .subtitle { font-size: 8px; }
+      .divider { margin-bottom: 16px; }
+      .quote { font-size: 14px; padding: 0 8px; }
+      .status-badge { margin-bottom: 20px; font-size: 9px; }
+      .enter-btn { font-size: 12px; padding: 10px 24px; letter-spacing: 3px; }
+      .foot { margin-top: 20px; font-size: 8px; }
+    }
+  </style>
+</head>
 <body>
 
-  <div id="ls">
-    <div class="lc">
+<div class="particles" id="particles"></div>
 
-      <div class="lbrand">
-        <svg class="llamp" viewBox="0 0 64 64" fill="none">
-          <path d="M32 6C32 6 20 18 20 30C20 36.6 23.6 42.4 28 46V54H36V46C40.4 42.4 44 36.6 44 30C44 18 32 6 32 6Z"
-            fill="url(#lg1)" opacity="0.92" />
-          <ellipse cx="32" cy="29" rx="7" ry="9" fill="url(#lg2)" opacity="0.65" />
-          <path d="M27 54H37V57H27V54Z" fill="#7a5820" />
-          <path d="M25 57H39V61H25V57Z" fill="#5a3e10" />
-          <defs>
-            <linearGradient id="lg1" x1="32" y1="6" x2="32" y2="57" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#e8b84b" />
-              <stop offset="100%" stop-color="#7a5820" />
-            </linearGradient>
-            <radialGradient id="lg2" cx="50%" cy="40%">
-              <stop offset="0%" stop-color="#fff8e8" />
-              <stop offset="100%" stop-color="#f0a832" stop-opacity="0" />
-            </radialGradient>
-          </defs>
-        </svg>
-        <div class="ltitle">LAMPARA</div>
-        <div class="lsub">Administrative Console</div>
-      </div>
+<div class="wrap">
 
-      <div class="ldiv">
-        <div class="ldl a"></div>
-        <div class="ldsym">⚜</div>
-        <div class="ldl b"></div>
-      </div>
-
-      <div class="lcard">
-        <div class="lct">SIGN IN TO CONTINUE</div>
-
-        <div class="fld">
-          <label class="flbl">Email Address</label>
-          <div class="fwrap">
-            <svg class="fico" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-            </svg>
-            <input id="lemail" class="finp" type="email" placeholder="admin@lampara.edu.ph">
-          </div>
-          <div class="ferr" id="eerr">Please enter a valid email.</div>
-        </div>
-
-        <div class="fld">
-          <label class="flbl">Password</label>
-          <div class="fwrap">
-            <svg class="fico" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd"
-                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                clip-rule="evenodd" />
-            </svg>
-            <input id="lpass" class="finp" type="password" placeholder="••••••••">
-            <button class="feye" onclick="togglePw()">
-              <svg id="eyeico" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                <path fill-rule="evenodd"
-                  d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                  clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          <div class="ferr" id="perr">Incorrect password.</div>
-        </div>
-
-        <div class="ferr" id="gerr" style="margin-bottom:8px">Invalid credentials. Please try again.</div>
-
-        <button class="lbtn" id="lbtn" onclick="doLogin()">
-          <span class="bst">ENTER THE ARCHIVE</span>
-          <div class="bsp"></div>
-        </button>
-
-        <div class="lfoot">
-          STI College General Santos · BSIT Capstone 2026<br>
-          El Filibusterismo · Authorized Personnel Only
-        </div>
-      </div>
-
+  <!-- Brand -->
+  <div class="brand">
+    <div class="lamp-wrap">
+      <div class="lamp-ring"></div>
+      <div class="lamp-ring-2"></div>
+      <svg class="lamp-svg" viewBox="0 0 64 64" fill="none">
+        <path d="M32 6C32 6 20 18 20 30C20 36.6 23.6 42.4 28 46V54H36V46C40.4 42.4 44 36.6 44 30C44 18 32 6 32 6Z" fill="url(#lg1)" opacity="0.92"/>
+        <ellipse cx="32" cy="29" rx="7" ry="9" fill="url(#lg2)" opacity="0.65"/>
+        <path d="M27 54H37V57H27V54Z" fill="#7a5820"/>
+        <path d="M25 57H39V61H25V57Z" fill="#5a3e10"/>
+        <defs>
+          <linearGradient id="lg1" x1="32" y1="6" x2="32" y2="57" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#e8b84b"/><stop offset="100%" stop-color="#7a5820"/>
+          </linearGradient>
+          <radialGradient id="lg2" cx="50%" cy="40%">
+            <stop offset="0%" stop-color="#fff8e8"/><stop offset="100%" stop-color="#f0a832" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+      </svg>
     </div>
+    <div class="title">LAMPARA</div>
+    <div class="subtitle">El Filibusterismo · Interactive Archive</div>
   </div>
 
-
-  <div id="app">
-
-    <aside class="sb">
-      <div class="sbb">
-        <div class="sbr">
-          <div class="sbli">
-            <svg viewBox="0 0 36 36" fill="none">
-              <path d="M18 4C18 4 12 10 12 17C12 20.3 13.8 23.2 16 25V30H20V25C22.2 23.2 24 20.3 24 17C24 10 18 4 18 4Z"
-                fill="url(#sg1)" opacity="0.9" />
-              <path d="M15 30H21V32H15V30Z" fill="#7a5820" />
-              <path d="M14 32H22V34H14V32Z" fill="#5a3e10" />
-              <ellipse cx="18" cy="16" rx="4" ry="5" fill="url(#sg2)" opacity="0.65" />
-              <defs>
-                <linearGradient id="sg1" x1="18" y1="4" x2="18" y2="32" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#e8b84b" />
-                  <stop offset="100%" stop-color="#7a5820" />
-                </linearGradient>
-                <radialGradient id="sg2" cx="50%" cy="50%">
-                  <stop offset="0%" stop-color="#fff7e0" />
-                  <stop offset="100%" stop-color="#f0a832" stop-opacity="0" />
-                </radialGradient>
-              </defs>
-            </svg>
-          </div>
-          <div class="sbt">LAMPARA</div>
-        </div>
-        <div class="sbs">Admin Console</div>
-      </div>
-
-      <div class="sbadg">
-        <div class="sbav" id="sbav" style="background:linear-gradient(135deg,#7a5820,#c9953a);color:#0a0805">
-          SA<div class="odot"></div>
-        </div>
-        <div class="sbin">
-          <div class="sbname" id="sbname">Super Admin</div>
-          <span class="rp rp-sa" id="sbrole">⚜ SUPER ADMIN</span>
-        </div>
-        <button class="lout" onclick="doLogout()" title="Sign out">
-          <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd"
-              d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
-              clip-rule="evenodd" />
-          </svg>
-        </button>
-      </div>
-
-      <div class="nvsec">
-        <div class="nvlbl">Overview</div>
-        <div class="ni active" id="ni-db" onclick="sp('db',this)">
-          <svg class="nic" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              d="M2 10a8 8 0 1016 0A8 8 0 002 10zm6-2a2 2 0 114 0 2 2 0 01-4 0zm2 8a7 7 0 01-5.468-2.614A4.984 4.984 0 0110 14a4.984 4.984 0 013.468 1.386A7 7 0 0110 16z" />
-          </svg>
-          <span class="nt">Dashboard</span>
-        </div>
-      </div>
-
-      <div class="nvsec">
-        <div class="nvlbl">Players</div>
-        <div class="ni" id="ni-pl" onclick="sp('pl',this)">
-          <svg class="nic" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM4.75 14.094A5.973 5.973 0 004 17v1H1v-1a3 3 0 013.75-2.906z" />
-          </svg>
-          <span class="nt">Player Management</span>
-        </div>
-        <div class="ni" id="ni-vr" onclick="sp('vr',this)">
-          <svg class="nic" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd"
-              d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd" />
-          </svg>
-          <span class="nt">Verification &amp; Approval</span>
-        </div>
-      </div>
-
-      <div class="nvsec">
-        <div class="nvlbl">Game Content</div>
-        <div class="ni" id="ni-qt" onclick="sp('qt',this)">
-          <svg class="nic" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-          </svg>
-          <span class="nt">Quest Management</span>
-          <span class="nb gold">13</span>
-        </div>
-      </div>
-
-      <div class="nvsec" id="nslogs">
-        <div class="nvlbl">Reports</div>
-        <div class="ni" id="ni-lg" onclick="sp('lg',this)">
-          <svg class="nic" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd"
-              d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-              clip-rule="evenodd" />
-          </svg>
-          <span class="nt">Activity Logs</span>
-        </div>
-      </div>
-
-      <div class="sbfoot">
-        v0.1.0-alpha · Build 2026.03<br>
-        El Filibusterismo Module<br>
-        STI College General Santos
-      </div>
-    </aside>
-
-    <div class="main">
-
-      <div class="topbar">
-        <div class="tbtit" id="tbtit">DASHBOARD OVERVIEW</div>
-        <div class="tbsrch">
-          <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd"
-              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-              clip-rule="evenodd" />
-          </svg>
-          <input type="text" placeholder="Search players, chapters...">
-        </div>
-
-        <button class="tbbtn" id="notif-bell" style="position: relative;" title="View Pending Approvals">
-          <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-          </svg>
-          <div id="notif-badge"
-            style="display: none; position: absolute; top: -6px; right: -6px; background: #e06060; color: white; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 10px; border: 1px solid #1a1611;">
-            0</div>
-        </button>
-
-      </div>
-
-      <div class="content">
-
-        <div class="panel active" id="panel-db">
-          <div class="srow">
-            <div class="sc">
-              <div class="slbl">Total Players</div>
-              <div class="sval" id="stat-total-players">0</div>
-              <div class="ssub">+12 this week</div>
-              <div class="sico"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1z" />
-                </svg></div>
-            </div>
-            <div class="sc">
-              <div class="slbl">Pending</div>
-              <div class="sval" id="stat-pending-approvals" style="color:#e8b84b">0</div>
-              <div class="ssub">Awaiting review</div>
-            </div>
-            <div class="sc">
-              <div class="slbl">Active Sessions</div>
-              <div class="sval" id="stat-active-sessions" style="color:#6dba85">0</div>
-              <div class="ssub">Currently playing</div>
-            </div>
-            <div class="sc">
-              <div class="slbl">Chapters Live</div>
-              <div class="sval" id="stat-chapters-live">0<span style="font-size:12px;color:var(--td)">/13</span></div>
-              <div class="ssub">El Filibusterismo</div>
-            </div>
-          </div>
-          <div class="shdr">
-            <h2>RECENT ACTIVITY</h2>
-            <div class="orn"></div>
-          </div>
-          <div class="tw">
-            <div class="tb">
-              <div class="tbtt">Latest Players</div>
-              <button class="fb active">All</button>
-              <button class="fb">Active</button>
-              <button class="fb">Pending</button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Chapter</th>
-                  <th>Suspicion</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="db-ptbody"> </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel" id="panel-pl">
-          <div class="srow" style="grid-template-columns:repeat(3,1fr)">
-            <div class="sc">
-              <div class="slbl">Total Enrolled</div>
-              <div class="sval" id="stat-pl-total">0</div>
-              <div class="ssub">All registered</div>
-            </div>
-            <div class="sc">
-              <div class="slbl">Active</div>
-              <div class="sval" id="stat-pl-active" style="color:#6dba85">0</div>
-              <div class="ssub">Approved accounts</div>
-            </div>
-            <div class="sc">
-              <div class="slbl">Suspended</div>
-              <div class="sval" id="stat-pl-susp" style="color:#e06060">0</div>
-              <div class="ssub">Cover blown (100pts)</div>
-            </div>
-          </div>
-          <div class="shdr">
-            <h2>ALL PLAYERS</h2>
-            <div class="orn"></div>
-          </div>
-          <div class="tw">
-            <div class="tb">
-              <div class="tbtt">Player Registry</div>
-              <button class="fb active">All</button>
-              <button class="fb">Active</button>
-              <button class="fb">Suspended</button>
-              <button class="fb">Pending</button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th>Codex</th>
-                  <th>Fails</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="ptbody">
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- PENDING APPROVALS PANEL - UPDATED (DYNAMIC) -->
-        <div class="panel" id="panel-vr">
-          <div class="shdr">
-            <h2>PENDING APPROVALS</h2>
-            <div class="orn"></div>
-            <span class="nb" id="pending-count">0 PENDING</span>
-          </div>
-          <div class="tw">
-            <div class="tb">
-              <div class="tbtt">Registration Queue</div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Applicant</th>
-                  <th>Email ID</th>
-                  <th>Email</th>
-                  <th>Age</th>
-                  <th>Username</th>
-                  <th>Submitted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="pending-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-
-          <div class="shdr">
-            <h2>RECENTLY PROCESSED</h2>
-            <div class="orn"></div>
-          </div>
-          <div class="tw">
-            <table>
-              <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Result</th>
-                  <th>Processed</th>
-                  <th>By</th>
-                </tr>
-              </thead>
-              <tbody id="processed-tbody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="panel" id="panel-qt">
-          <div class="shdr">
-            <h2>EL FILIBUSTERISMO — CHAPTER QUESTS</h2>
-            <div class="orn"></div><span class="chap-stat-lbl" id="stat-qt-chap">0 ACTIVE · 0 STANDBY</span>
-          </div>
-
-          <!-- Chapter Navigation Tabs -->
-          <div class="chapter-tabs" id="chapter-tabs">
-            <button class="chapter-tab active" data-chapter="1">CHAPTER 1</button>
-            <button class="chapter-tab" data-chapter="2">CHAPTER 2</button>
-            <button class="chapter-tab" data-chapter="3">CHAPTER 3</button>
-            <button class="chapter-tab" data-chapter="4">CHAPTER 4</button>
-            <button class="chapter-tab" data-chapter="5">CHAPTER 5</button>
-          </div>
-
-          <div class="cgrid" id="quests-grid">
-            <!-- JavaScript will inject the 7 Main Quest cards here -->
-          </div>
-        </div>
-
-        <div class="panel" id="panel-lg">
-          <div class="shdr">
-            <h2>ACTIVITY LOGS</h2>
-            <div class="orn"></div>
-          </div>
-          <div class="tw">
-            <div class="tb">
-              <div class="tbtt">System Event Log</div>
-              <button class="fb active">All</button>
-              <button class="fb">Players</button>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>Admin</th>
-                  <th>Action</th>
-                  <th>Target</th>
-                  <th>IP</th>
-                </tr>
-              </thead>
-              <tbody id="logtb">
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
-  <div class="mov" id="mov-pl">
-    <div class="modal">
-      <div class="mhdr">
-        <div class="mtit" id="pmtit">PLAYER PROFILE</div>
-        <button class="mx" onclick="closeM('mov-pl')">✕</button>
-      </div>
-      <div class="mbdy">
-        <div class="mgrid">
-          <div class="mfld">
-            <div class="mll">Full Name</div>
-            <div class="mvl" id="pm-n">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Student ID</div>
-            <div class="mvl mono" id="pm-i">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Email</div>
-            <div class="mvl" id="pm-s">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Age</div>
-            <div class="mvl" id="pm-a">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Status</div>
-            <div class="mvl" id="pm-st">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Current Chapter</div>
-            <div class="mvl" id="pm-c">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Suspicion Score</div>
-            <div class="mvl mono" id="pm-su">—</div>
-          </div>
-          <div class="mfld">
-            <div class="mll">Codex Completion</div>
-            <div class="mvl" id="pm-cd">—</div>
-          </div>
-        </div>
-        <div class="macts">
-          <button class="mbtn mbok" onclick="showT('Player reinstated','success');closeM('mov-pl')">REINSTATE</button>
-          <button class="mbtn mbbad" onclick="showT('Player suspended','error');closeM('mov-pl')">SUSPEND</button>
-        </div>
-      </div>
-    </div>
+  <div class="divider">
+    <div class="divl a"></div>
+    <div class="divsym">⚜</div>
+    <div class="divl b"></div>
   </div>
 
-  <div class="mov" id="mov-subquest">
-    <div class="modal">
-      <div class="mhdr">
-        <div class="mtit" id="sq-mtit">MAIN QUEST</div>
-        <button class="mx" onclick="closeM('mov-subquest')">✕</button>
-      </div>
-      <div class="mbdy">
-        <div class="sq-info" id="sq-info"></div>
-        <div class="sq-grid" id="sq-grid">
-          <!-- Sub-quest cards will be injected here -->
-        </div>
-      </div>
-    </div>
+  <!-- Lore Quote -->
+  <div class="quote">
+    "Seek the light, for the archive holds the truth buried in the pages of revolution."
+    <span class="quote-src">— from the Archive</span>
   </div>
 
-  <div class="tc" id="tc"></div>
+  <!-- System Status -->
+  <div class="status-badge">
+    <div class="status-dot"></div>
+    SYSTEM ONLINE · 57 ENROLLED
+  </div>
 
-  <!-- Core Modules -->
-  <script src="src/config.js"></script>
-  <script src="src/utils.js"></script>
-  <script src="src/api.js"></script>
+  <!-- Enter Button -->
+  <a href="player-portal.html" class="enter-btn">Enter the Archive →</a>
 
-  <!-- Feature Modules -->
-  <script src="src/auth.js"></script>
-  <script src="src/players.js"></script>
-  <script src="src/quests.js"></script>
-  <script src="src/logs.js"></script>
-  <script src="src/ui.js"></script>
+  <div class="foot">
+    STI College General Santos · BSIT Capstone 2026<br>
+    Authorized Personnel Only
+  </div>
 
-  <!-- Entry Point -->
-  <script src="Lampara.js"></script>
+</div>
+
+<script>
+  // Responsive particle count
+  const isMobile = window.innerWidth <= 480;
+  const particleCount = isMobile ? 8 : 20;
+
+  const pWrap = document.getElementById('particles');
+  for (let i = 0; i < particleCount; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (6 + Math.random() * 10) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    p.style.width = p.style.height = (1 + Math.random() * 2.5) + 'px';
+    pWrap.appendChild(p);
+  }
+</script>
 
 </body>
-
 </html>

@@ -5,7 +5,7 @@
 const ACCOUNTS = {};
 
 const API_CONFIG = {
-  baseUrl: 'https://lampara-production.up.railway.app/api',
+  baseUrl: 'https://api.lampara.life/api',
 };
 
 const ROLE_META = {
@@ -17,6 +17,7 @@ const PANEL_TITLES = {
   pl:  'PLAYER MANAGEMENT',
   vr:  'VERIFICATION & APPROVAL',
   qt:  'QUEST MANAGEMENT',
+  gs:  'GAME SETTINGS',
   lg:  'ACTIVITY LOGS'
 };
 

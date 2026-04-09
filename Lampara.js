@@ -9,6 +9,7 @@ function loadInitialData() {
   fetchAndRenderLogs();
   fetchAndRenderPendingApprovals();
   fetchAndRenderRecentlyProcessed();
+  fetchAndRenderGameConfig();
 }
 
 document.addEventListener('DOMContentLoaded', async function () {

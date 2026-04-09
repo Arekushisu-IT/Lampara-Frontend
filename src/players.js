@@ -304,7 +304,11 @@ function renderPlayerRegistry(players) {
     const progressPct = Math.min(100, subQuestsDone * 20);
     const email = p.email || 'Unassigned';
 
-    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','Ch.${p.chapter || 1} M${p.current_quest_id || 1} S${p.current_sub_quest || 0}','0','${progressPct}%')">VIEW</button>`;
+    // Codex format: Chapter-Quest (e.g., "1-2")
+    const codex = `${p.chapter || 1}-${p.current_quest_id || 1}`;
+    const codexFull = `Ch.${p.chapter || 1} Q${p.current_quest_id || 1} SQ${p.current_sub_quest || 0}`;
+
+    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','${codexFull}','${p.suspicion || 0}','${codex}')" >VIEW</button>`;
 
     if (p.status === 'active') {
       actionHTML += `<button class="ab absu" onclick="updatePlayerStatus(${p.id}, '${p.name.replace(/'/g, "\\'")}', 'banned', 'Suspended')">SUSPEND</button>`;
@@ -327,8 +331,8 @@ function renderPlayerRegistry(players) {
         <div style="font-size:10px;color:var(--ts)">${progressPct}%</div>
         <div class="pbar"><div class="pfill" style="width:${progressPct}%"></div></div>
       </td>
-      <td><span class="mono-sm">Ch.${p.chapter || 1}</span></td>
-      <td><span class="mono-sm dim-txt">0</span></td>
+      <td><span class="mono-sm gold-txt" style="font-size:11px;font-weight:700">${codex}</span></td>
+      <td><span class="mono-sm dim-txt">${p.suspicion || 0}</span></td>
       <td>${actionHTML}</td>
     `;
     tbody.appendChild(row);

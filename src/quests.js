@@ -4,6 +4,7 @@
 
 let currentChapter = 1;
 let allQuests = [];
+let currentEditQuest = null; // Track which sub-quest's dialogues are being edited
 
 // Initialize chapter tab listeners
 function initChapterTabs() {
@@ -48,11 +49,10 @@ function renderChapterQuests(chapterNum) {
   container.innerHTML = '';
 
   // Chapter 1 & 2: Show quests from database if available
-  // All main quests (MQ1, MQ2, etc.) within the same chapter are loaded from DB
   if (chapterNum === 1 || chapterNum === 2) {
     renderChapterQuestsFromDB(container, chapterNum);
   } else {
-    // Chapters 3-5: Show "Awaiting Storyboard" for all 7 main quests
+    // Chapters 3-5: Show "Awaiting Storyboard" for all 7 quests
     renderStandbyChapter(container, chapterNum);
   }
 }
@@ -62,16 +62,16 @@ function renderChapterQuestsFromDB(container, chapterNum) {
   // Filter for the selected chapter
   const chapterQuests = allQuests.filter(q => q.chapter === chapterNum);
 
-  // Group by Main Quest (1 to 7)
-  const mainQuests = [];
+  // Group by Quest (1 to 7)
+  const quests = [];
   for (let mq = 1; mq <= 7; mq++) {
     const subs = chapterQuests.filter(q => q.main_quest === mq);
     const isActive = subs.length === 5 && subs.every(sq => sq.status === 'active');
-    mainQuests.push({ id: mq, subs, isActive });
+    quests.push({ id: mq, subs, isActive });
   }
 
   // Render the cards
-  mainQuests.forEach(mq => {
+  quests.forEach(mq => {
     const activeCount = mq.subs.filter(sq => sq.status === 'active').length;
     const progressPct = Math.round((activeCount / 5) * 100);
 
@@ -85,7 +85,7 @@ function renderChapterQuestsFromDB(container, chapterNum) {
 
     card.innerHTML = `
       <div class="cdec">${roman}</div>
-      <div class="cnum">MAIN QUEST ${mq.id}</div>
+      <div class="cnum">QUEST ${mq.id}</div>
       <div class="ctit">${esc(title)}</div>
       <div class="csub">${activeCount}/5 Sub-Quests</div>
       <div class="cmeta">
@@ -125,7 +125,7 @@ function renderStandbyChapter(container, chapterNum) {
 
     card.innerHTML = `
       <div class="cdec">${roman[mq - 1]}</div>
-      <div class="cnum">MAIN QUEST ${mq}</div>
+      <div class="cnum">QUEST ${mq}</div>
       <div class="ctit">Awaiting Storyboard</div>
       <div class="csub">0/5 Sub-Quests</div>
       <div class="cmeta">
@@ -178,14 +178,16 @@ async function fetchAndRenderQuests() {
   }
 }
 
-// Sub-Quest Modal
+// ============================================================
+// SUB-QUEST MODAL
+// ============================================================
 async function openSubQuestModal(mainQuest) {
   try {
     // Update modal title
     const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][mainQuest.id - 1];
     const modalTitle = document.getElementById('sq-mtit');
     if (modalTitle) {
-      modalTitle.textContent = `MAIN QUEST ${mainQuest.id} — ${roman}`;
+      modalTitle.textContent = `QUEST ${mainQuest.id} — ${roman}`;
     }
 
     // Update info section
@@ -230,14 +232,19 @@ async function openSubQuestModal(mainQuest) {
             <div class="sq-num">SUB-QUEST ${index + 1}</div>
             <div class="sq-card-title">${esc(sub.title || 'Awaiting Storyboard')}</div>
             <div class="sq-card-desc">${esc(sub.description || 'No description available.')}</div>
-            <span class="sq-status ${statusClass}">${statusText}</span>
+            <div class="sq-card-actions">
+              <span class="sq-status ${statusClass}">${statusText}</span>
+              <button class="sq-edit-dlg-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${esc(sub.title || 'Sub-Quest')}', ${sub.chapter || currentChapter}, ${sub.main_quest}, ${sub.sub_quest})" title="Edit Dialogues">
+                <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                DIALOGUES
+              </button>
+            </div>
           `;
 
           // Click handler for sub-quest
           card.onclick = () => {
             if (sub.status === 'active') {
-              showT(`Opening Sub-Quest ${index + 1}: ${sub.title}`, 'info');
-              // TODO: Open detailed sub-quest view
+              openDialogueEditor(sub.id, sub.title || 'Sub-Quest', sub.chapter || currentChapter, sub.main_quest, sub.sub_quest);
             }
           };
 
@@ -255,5 +262,282 @@ async function openSubQuestModal(mainQuest) {
   } catch (err) {
     console.error('Failed to open sub-quest modal:', err);
     showT('Error loading sub-quests', 'error');
+  }
+}
+
+// ============================================================
+// DIALOGUE EDITOR
+// ============================================================
+async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest) {
+  currentEditQuest = { id: questId, title: questTitle, chapter, quest, subQuest };
+
+  // Update title
+  const titleEl = document.getElementById('dlg-mtit');
+  if (titleEl) {
+    titleEl.textContent = `DIALOGUE EDITOR — Ch.${chapter} Q${quest} SQ${subQuest}`;
+  }
+
+  // Update quest info
+  const infoEl = document.getElementById('dlg-quest-info');
+  if (infoEl) {
+    infoEl.innerHTML = `
+      <div class="dlg-info-title">${esc(questTitle)}</div>
+      <div class="dlg-info-sub">Chapter ${chapter} · Quest ${quest} · Sub-Quest ${subQuest}</div>
+    `;
+  }
+
+  // Fetch existing dialogues
+  await refreshDialogueList(questId);
+
+  // Open modal
+  const modal = document.getElementById('mov-dialogue');
+  if (modal) modal.classList.add('open');
+}
+
+async function refreshDialogueList(questId) {
+  const listEl = document.getElementById('dlg-list');
+  if (!listEl) return;
+
+  try {
+    const data = await apiCall(`/quests/${questId}/dialogues`);
+    const dialogues = data.dialogues || [];
+
+    if (dialogues.length === 0) {
+      listEl.innerHTML = `
+        <div class="dlg-empty">
+          <div class="dlg-empty-icon">💬</div>
+          <div class="dlg-empty-text">No dialogue lines yet</div>
+          <div class="dlg-empty-hint">Click "Add Dialogue Line" to create the first dialogue for this sub-quest.</div>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = '';
+    dialogues.forEach((dlg, idx) => {
+      const entry = document.createElement('div');
+      entry.className = 'dlg-entry';
+      entry.innerHTML = `
+        <div class="dlg-entry-header">
+          <span class="dlg-seq">#${dlg.sequence_order}</span>
+          <span class="dlg-npc-name">${esc(dlg.npc_name)}</span>
+          <span class="dlg-penalty-badge">⚠ ${dlg.suspicion_penalty}pts penalty</span>
+          <div class="dlg-entry-actions">
+            <button class="dlg-btn-edit" onclick="editDialogue(${dlg.id})" title="Edit">✎</button>
+            <button class="dlg-btn-del" onclick="deleteDialogue(${dlg.id})" title="Delete">✕</button>
+          </div>
+        </div>
+        <div class="dlg-entry-body">
+          <div class="dlg-npc-text">"${esc(dlg.npc_text)}"</div>
+          <div class="dlg-options">
+            <div class="dlg-option ${dlg.option_a_correct ? 'dlg-correct' : 'dlg-wrong'}">
+              <span class="dlg-opt-label">A${dlg.option_a_correct ? ' ✓' : ' ✗'}</span>
+              ${esc(dlg.option_a_text)}
+            </div>
+            <div class="dlg-option ${dlg.option_b_correct ? 'dlg-correct' : 'dlg-wrong'}">
+              <span class="dlg-opt-label">B${dlg.option_b_correct ? ' ✓' : ' ✗'}</span>
+              ${esc(dlg.option_b_text)}
+            </div>
+          </div>
+          ${dlg.context_notes ? `<div class="dlg-notes">📝 ${esc(dlg.context_notes)}</div>` : ''}
+        </div>
+      `;
+      listEl.appendChild(entry);
+    });
+  } catch (err) {
+    console.error('Failed to load dialogues:', err);
+    listEl.innerHTML = '<div style="text-align:center;color:#e06060;padding:20px;">Failed to load dialogues</div>';
+  }
+}
+
+async function addNewDialogue() {
+  if (!currentEditQuest) return;
+
+  // Create inline form
+  const listEl = document.getElementById('dlg-list');
+  if (!listEl) return;
+
+  // Remove existing form if any
+  const existingForm = document.getElementById('dlg-new-form');
+  if (existingForm) existingForm.remove();
+
+  const form = document.createElement('div');
+  form.id = 'dlg-new-form';
+  form.className = 'dlg-form';
+  form.innerHTML = `
+    <div class="dlg-form-title">NEW DIALOGUE LINE</div>
+    <div class="dlg-form-field">
+      <label>NPC Name</label>
+      <input type="text" id="dlg-f-npc" value="NPC" placeholder="e.g., Servant, Basilio, Official">
+    </div>
+    <div class="dlg-form-field">
+      <label>NPC Dialogue Text</label>
+      <textarea id="dlg-f-text" rows="3" placeholder='The NPC dialogue line shown to the player...'></textarea>
+    </div>
+    <div class="dlg-form-row">
+      <div class="dlg-form-field dlg-f-half">
+        <label>Option A (Player Choice)</label>
+        <textarea id="dlg-f-opta" rows="2" placeholder="First choice text..."></textarea>
+        <label class="dlg-check-label"><input type="checkbox" id="dlg-f-opta-correct"> Correct Answer</label>
+      </div>
+      <div class="dlg-form-field dlg-f-half">
+        <label>Option B (Player Choice)</label>
+        <textarea id="dlg-f-optb" rows="2" placeholder="Second choice text..."></textarea>
+        <label class="dlg-check-label"><input type="checkbox" id="dlg-f-optb-correct" checked> Correct Answer</label>
+      </div>
+    </div>
+    <div class="dlg-form-row">
+      <div class="dlg-form-field dlg-f-half">
+        <label>Suspicion Penalty (wrong answer)</label>
+        <input type="number" id="dlg-f-penalty" value="10" min="1" max="100">
+      </div>
+      <div class="dlg-form-field dlg-f-half">
+        <label>Context Notes (admin only)</label>
+        <input type="text" id="dlg-f-notes" placeholder="Optional reference notes...">
+      </div>
+    </div>
+    <div class="dlg-form-actions">
+      <button class="dlg-form-save" onclick="submitNewDialogue()">SAVE DIALOGUE</button>
+      <button class="dlg-form-cancel" onclick="document.getElementById('dlg-new-form').remove()">CANCEL</button>
+    </div>
+  `;
+  listEl.appendChild(form);
+  form.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function submitNewDialogue() {
+  if (!currentEditQuest) return;
+
+  const npc_name = document.getElementById('dlg-f-npc')?.value?.trim() || 'NPC';
+  const npc_text = document.getElementById('dlg-f-text')?.value?.trim();
+  const option_a_text = document.getElementById('dlg-f-opta')?.value?.trim();
+  const option_b_text = document.getElementById('dlg-f-optb')?.value?.trim();
+  const option_a_correct = document.getElementById('dlg-f-opta-correct')?.checked ? 1 : 0;
+  const option_b_correct = document.getElementById('dlg-f-optb-correct')?.checked ? 1 : 0;
+  const suspicion_penalty = parseInt(document.getElementById('dlg-f-penalty')?.value) || 10;
+  const context_notes = document.getElementById('dlg-f-notes')?.value?.trim() || '';
+
+  if (!npc_text || !option_a_text || !option_b_text) {
+    showT('Please fill in all required dialogue fields', 'error');
+    return;
+  }
+
+  try {
+    await apiCall(`/quests/${currentEditQuest.id}/dialogues`, {
+      method: 'POST',
+      body: JSON.stringify({
+        npc_name, npc_text, option_a_text, option_b_text,
+        option_a_correct, option_b_correct, suspicion_penalty, context_notes
+      })
+    });
+
+    showT('Dialogue line created successfully', 'success');
+    document.getElementById('dlg-new-form')?.remove();
+    await refreshDialogueList(currentEditQuest.id);
+  } catch (err) {
+    console.error('Failed to create dialogue:', err);
+    showT('Failed to create dialogue line', 'error');
+  }
+}
+
+async function editDialogue(dialogueId) {
+  if (!currentEditQuest) return;
+
+  // Fetch the dialogue data
+  try {
+    const data = await apiCall(`/quests/${currentEditQuest.id}/dialogues`);
+    const dlg = (data.dialogues || []).find(d => d.id === dialogueId);
+    if (!dlg) return showT('Dialogue not found', 'error');
+
+    const listEl = document.getElementById('dlg-list');
+    if (!listEl) return;
+
+    // Remove existing edit form if any
+    const existingForm = document.getElementById('dlg-edit-form');
+    if (existingForm) existingForm.remove();
+
+    const form = document.createElement('div');
+    form.id = 'dlg-edit-form';
+    form.className = 'dlg-form dlg-form-edit';
+    form.innerHTML = `
+      <div class="dlg-form-title">EDIT DIALOGUE #${dlg.sequence_order}</div>
+      <div class="dlg-form-field">
+        <label>NPC Name</label>
+        <input type="text" id="dlg-e-npc" value="${esc(dlg.npc_name)}">
+      </div>
+      <div class="dlg-form-field">
+        <label>NPC Dialogue Text</label>
+        <textarea id="dlg-e-text" rows="3">${esc(dlg.npc_text)}</textarea>
+      </div>
+      <div class="dlg-form-row">
+        <div class="dlg-form-field dlg-f-half">
+          <label>Option A</label>
+          <textarea id="dlg-e-opta" rows="2">${esc(dlg.option_a_text)}</textarea>
+          <label class="dlg-check-label"><input type="checkbox" id="dlg-e-opta-correct" ${dlg.option_a_correct ? 'checked' : ''}> Correct Answer</label>
+        </div>
+        <div class="dlg-form-field dlg-f-half">
+          <label>Option B</label>
+          <textarea id="dlg-e-optb" rows="2">${esc(dlg.option_b_text)}</textarea>
+          <label class="dlg-check-label"><input type="checkbox" id="dlg-e-optb-correct" ${dlg.option_b_correct ? 'checked' : ''}> Correct Answer</label>
+        </div>
+      </div>
+      <div class="dlg-form-row">
+        <div class="dlg-form-field dlg-f-half">
+          <label>Suspicion Penalty</label>
+          <input type="number" id="dlg-e-penalty" value="${dlg.suspicion_penalty}" min="1" max="100">
+        </div>
+        <div class="dlg-form-field dlg-f-half">
+          <label>Context Notes</label>
+          <input type="text" id="dlg-e-notes" value="${esc(dlg.context_notes || '')}">
+        </div>
+      </div>
+      <div class="dlg-form-actions">
+        <button class="dlg-form-save" onclick="submitEditDialogue(${dialogueId})">UPDATE</button>
+        <button class="dlg-form-cancel" onclick="document.getElementById('dlg-edit-form').remove()">CANCEL</button>
+      </div>
+    `;
+    listEl.prepend(form);
+    form.scrollIntoView({ behavior: 'smooth' });
+  } catch (err) {
+    showT('Failed to load dialogue for editing', 'error');
+  }
+}
+
+async function submitEditDialogue(dialogueId) {
+  const npc_name = document.getElementById('dlg-e-npc')?.value?.trim();
+  const npc_text = document.getElementById('dlg-e-text')?.value?.trim();
+  const option_a_text = document.getElementById('dlg-e-opta')?.value?.trim();
+  const option_b_text = document.getElementById('dlg-e-optb')?.value?.trim();
+  const option_a_correct = document.getElementById('dlg-e-opta-correct')?.checked ? 1 : 0;
+  const option_b_correct = document.getElementById('dlg-e-optb-correct')?.checked ? 1 : 0;
+  const suspicion_penalty = parseInt(document.getElementById('dlg-e-penalty')?.value) || 10;
+  const context_notes = document.getElementById('dlg-e-notes')?.value?.trim() || '';
+
+  try {
+    await apiCall(`/quests/dialogues/${dialogueId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        npc_name, npc_text, option_a_text, option_b_text,
+        option_a_correct, option_b_correct, suspicion_penalty, context_notes
+      })
+    });
+
+    showT('Dialogue updated successfully', 'success');
+    document.getElementById('dlg-edit-form')?.remove();
+    await refreshDialogueList(currentEditQuest.id);
+  } catch (err) {
+    showT('Failed to update dialogue', 'error');
+  }
+}
+
+async function deleteDialogue(dialogueId) {
+  if (!confirm('Delete this dialogue line? This cannot be undone.')) return;
+
+  try {
+    await apiCall(`/quests/dialogues/${dialogueId}`, { method: 'DELETE' });
+    showT('Dialogue deleted', 'success');
+    if (currentEditQuest) await refreshDialogueList(currentEditQuest.id);
+  } catch (err) {
+    showT('Failed to delete dialogue', 'error');
   }
 }
