@@ -402,7 +402,7 @@
           <span class="info-value" id="verified-time">—</span>
         </div>
       </div>
-      <a href="/admin-portal.html" class="btn">ENTER THE ARCHIVE</a>
+      <a href="player-portal.html" class="btn">ENTER THE ARCHIVE</a>
     </div>
 
     <!-- STATE: Already Verified -->
@@ -410,7 +410,21 @@
       <div class="state-icon already">◈</div>
       <div class="state-title already">ALREADY VERIFIED</div>
       <div class="state-desc">This account has already been verified. You can sign in to the archive directly.</div>
-      <a href="/admin-portal.html" class="btn">SIGN IN</a>
+      <div class="info-box" id="already-verified-info" style="display:none;">
+        <div class="info-row">
+          <span class="info-label">Student</span>
+          <span class="info-value" id="already-verified-name">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Email</span>
+          <span class="info-value" id="already-verified-email">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Status</span>
+          <span class="info-value" style="color:#6dba85">✓ ACTIVE</span>
+        </div>
+      </div>
+      <a href="player-portal.html" class="btn">SIGN IN</a>
     </div>
 
     <!-- STATE: Expired -->
@@ -521,6 +535,13 @@
           return;
         }
         if (res.status === 409 || data.error?.toLowerCase().includes('already')) {
+          console.log('ℹ️  Account already verified, showing "already verified" state');
+          // If backend returned user data, populate it
+          if (data.user) {
+            document.getElementById('already-verified-name').textContent  = data.user.name  || '—';
+            document.getElementById('already-verified-email').textContent = data.user.email || '—';
+            document.getElementById('already-verified-info').style.display = 'block';
+          }
           showState('already');
           return;
         }
