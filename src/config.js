@@ -6,6 +6,7 @@ const ACCOUNTS = {};
 
 const API_CONFIG = {
   baseUrl: 'https://lampara-production.up.railway.app/api',
+  // Fallback: if Railway URL has issues, use: '/api' (relative path with proxy)
 };
 
 const ROLE_META = {

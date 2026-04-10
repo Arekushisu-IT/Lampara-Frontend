@@ -44,6 +44,16 @@
     .title { font-family: 'Cinzel', serif; font-size: 30px; font-weight: 900; letter-spacing: 10px; background: linear-gradient(135deg, var(--goldl), var(--gold), var(--goldd)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; margin-bottom: 6px; }
     .subtitle { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 4px; color: var(--td); text-transform: uppercase; }
 
+    /* Fix browser autofill background */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 30px var(--bgc) inset !important;
+      -webkit-text-fill-color: var(--tp) !important;
+      caret-color: var(--tp);
+    }
+
     .divider { width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
     .divl { flex: 1; height: 1px; }
     .divl.a { background: linear-gradient(90deg, transparent, var(--bdrg)); }

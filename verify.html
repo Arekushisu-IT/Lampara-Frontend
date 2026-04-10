@@ -497,6 +497,9 @@
      VERIFY
   ═══════════════════════════════════════ */
   async function verifyToken(token) {
+    console.log('🚀 Starting verification request...');
+    console.log(' Full API URL:', `${API_BASE}/auth/verify`);
+
     try {
       const res = await fetch(`${API_BASE}/auth/verify`, {
         method: 'POST',
@@ -504,7 +507,11 @@
         body: JSON.stringify({ token })
       });
 
+      console.log('📨 Response status:', res.status);
+      console.log('📨 Response URL:', res.url);
+
       const data = await res.json();
+      console.log('📨 Response data:', data);
 
       if (!res.ok) {
         // Handle specific error types from backend
@@ -548,13 +555,27 @@
      INIT
   ═══════════════════════════════════════ */
   document.addEventListener('DOMContentLoaded', () => {
+    // Debug logging
+    console.log('🔍 Verification page loaded');
+    console.log('📍 Full URL:', window.location.href);
+    console.log('📍 Search params:', window.location.search);
+
     const params = new URLSearchParams(window.location.search);
     const token  = params.get('token');
 
+    console.log('🔑 Token found:', token ? `Yes (${token.length} chars)` : 'No');
+    if (token) {
+      console.log('🔑 Token preview:', token.substring(0, 30) + '...');
+    }
+
     if (!token) {
+      console.warn('❌ No token in URL, showing "invalid link" state');
       setTimeout(() => showState('notoken'), 800);
       return;
     }
+
+    console.log('✅ Token present, proceeding with verification...');
+    console.log('🌐 API endpoint:', `${API_BASE}/auth/verify`);
 
     // Small delay so the loading animation plays
     setTimeout(() => verifyToken(token), 1200);
