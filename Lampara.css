@@ -1361,3 +1361,138 @@ select.ai option { background: var(--bg); }
   background: rgba(201,149,58,.25);
   box-shadow: 0 0 8px rgba(201,149,58,.15);
 }
+
+/* ============================================================
+   DIALOGUE EDITOR - OPTION C & RADIO BUTTONS
+   ============================================================ */
+
+/* 3-column grid for dialogue options */
+.dlg-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dlg-option {
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dlg-correct {
+  background: rgba(45,106,63,.12);
+  border: 1px solid rgba(45,106,63,.3);
+  color: #6dba85;
+}
+
+.dlg-wrong {
+  background: rgba(139,32,32,.08);
+  border: 1px solid rgba(139,32,32,.2);
+  color: var(--ts);
+}
+
+.dlg-opt-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Radio button labels for correct answer selection */
+.dlg-radio-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--td);
+  cursor: pointer;
+  transition: color .2s;
+}
+
+.dlg-radio-label:hover {
+  color: var(--gold);
+}
+
+.dlg-radio-label input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--gold);
+}
+
+/* AR Artifact Path field on sub-quest cards */
+.sq-artifact-field {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--bgp);
+  border: 1px solid var(--bdrg);
+  border-radius: 4px;
+}
+
+.sq-artifact-field label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--td);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.sq-artifact-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.sq-artifact-input {
+  flex: 1;
+  background: var(--bgc);
+  border: 1px solid var(--bdr);
+  border-radius: 4px;
+  padding: 8px 10px;
+  color: var(--ts);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  outline: none;
+  transition: all .2s;
+}
+
+.sq-artifact-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 8px rgba(201,149,58,.15);
+}
+
+.sq-artifact-input::placeholder {
+  color: var(--td);
+  opacity: 0.6;
+}
+
+.sq-artifact-save {
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(45,106,63,.2), rgba(45,106,63,.08));
+  border: 1px solid var(--gok);
+  border-radius: 4px;
+  color: #6dba85;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sq-artifact-save:hover {
+  background: linear-gradient(135deg, rgba(45,106,63,.35), rgba(45,106,63,.15));
+  border-color: #6dba85;
+  box-shadow: 0 0 12px rgba(109,186,133,.2);
+  transform: translateY(-1px);
+}
+
+.sq-artifact-save:active {
+  transform: translateY(0);
+}

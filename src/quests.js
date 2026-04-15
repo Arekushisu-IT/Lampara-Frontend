@@ -232,6 +232,17 @@ async function openSubQuestModal(mainQuest) {
             <div class="sq-num">SUB-QUEST ${index + 1}</div>
             <div class="sq-card-title">${esc(sub.title || 'Awaiting Storyboard')}</div>
             <div class="sq-card-desc">${esc(sub.description || 'No description available.')}</div>
+            <div class="sq-artifact-field">
+              <label>AR Artifact Path</label>
+              <div class="sq-artifact-picker">
+                <input type="text" class="sq-artifact-input" id="sq-artifact-${sub.id}" value="${esc(sub.artifact_resource_path || '')}" placeholder="e.g., Artifacts/SCP012_Data/SCP-012">
+                <button class="sq-artifact-save" onclick="event.stopPropagation(); saveArtifactPath(${sub.id}, 'sq-artifact-${sub.id}')" title="Save">
+                  <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div class="sq-card-actions">
               <span class="sq-status ${statusClass}">${statusText}</span>
               <button class="sq-edit-dlg-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${esc(sub.title || 'Sub-Quest')}', ${sub.chapter || currentChapter}, ${sub.main_quest}, ${sub.sub_quest})" title="Edit Dialogues">
@@ -338,6 +349,10 @@ async function refreshDialogueList(questId) {
               <span class="dlg-opt-label">B${dlg.option_b_correct ? ' ✓' : ' ✗'}</span>
               ${esc(dlg.option_b_text)}
             </div>
+            ${dlg.option_c_text ? `<div class="dlg-option ${dlg.option_c_correct ? 'dlg-correct' : 'dlg-wrong'}">
+              <span class="dlg-opt-label">C${dlg.option_c_correct ? ' ✓' : ' ✗'}</span>
+              ${esc(dlg.option_c_text)}
+            </div>` : ''}
           </div>
           ${dlg.context_notes ? `<div class="dlg-notes">📝 ${esc(dlg.context_notes)}</div>` : ''}
         </div>
@@ -378,12 +393,17 @@ async function addNewDialogue() {
       <div class="dlg-form-field dlg-f-half">
         <label>Option A (Player Choice)</label>
         <textarea id="dlg-f-opta" rows="2" placeholder="First choice text..."></textarea>
-        <label class="dlg-check-label"><input type="checkbox" id="dlg-f-opta-correct"> Correct Answer</label>
+        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-opta-correct" value="a"> Correct</label>
       </div>
       <div class="dlg-form-field dlg-f-half">
         <label>Option B (Player Choice)</label>
         <textarea id="dlg-f-optb" rows="2" placeholder="Second choice text..."></textarea>
-        <label class="dlg-check-label"><input type="checkbox" id="dlg-f-optb-correct" checked> Correct Answer</label>
+        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-optb-correct" value="b" checked> Correct</label>
+      </div>
+      <div class="dlg-form-field dlg-f-half">
+        <label>Option C (Player Choice, optional)</label>
+        <textarea id="dlg-f-optc" rows="2" placeholder="Third choice text (leave empty to disable)..."></textarea>
+        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-optc-correct" value="c"> Correct</label>
       </div>
     </div>
     <div class="dlg-form-row">
@@ -412,8 +432,14 @@ async function submitNewDialogue() {
   const npc_text = document.getElementById('dlg-f-text')?.value?.trim();
   const option_a_text = document.getElementById('dlg-f-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-f-optb')?.value?.trim();
-  const option_a_correct = document.getElementById('dlg-f-opta-correct')?.checked ? 1 : 0;
-  const option_b_correct = document.getElementById('dlg-f-optb-correct')?.checked ? 1 : 0;
+  const option_c_text = document.getElementById('dlg-f-optc')?.value?.trim() || null;
+  
+  // Radio button logic: only one correct answer
+  const correctOption = document.querySelector('input[name="dlg-f-correct"]:checked')?.value;
+  const option_a_correct = correctOption === 'a' ? 1 : 0;
+  const option_b_correct = correctOption === 'b' ? 1 : 0;
+  const option_c_correct = correctOption === 'c' ? 1 : 0;
+  
   const suspicion_penalty = parseInt(document.getElementById('dlg-f-penalty')?.value) || 10;
   const context_notes = document.getElementById('dlg-f-notes')?.value?.trim() || '';
 
@@ -426,8 +452,8 @@ async function submitNewDialogue() {
     await apiCall(`/quests/${currentEditQuest.id}/dialogues`, {
       method: 'POST',
       body: JSON.stringify({
-        npc_name, npc_text, option_a_text, option_b_text,
-        option_a_correct, option_b_correct, suspicion_penalty, context_notes
+        npc_name, npc_text, option_a_text, option_b_text, option_c_text,
+        option_a_correct, option_b_correct, option_c_correct, suspicion_penalty, context_notes
       })
     });
 
@@ -473,12 +499,17 @@ async function editDialogue(dialogueId) {
         <div class="dlg-form-field dlg-f-half">
           <label>Option A</label>
           <textarea id="dlg-e-opta" rows="2">${esc(dlg.option_a_text)}</textarea>
-          <label class="dlg-check-label"><input type="checkbox" id="dlg-e-opta-correct" ${dlg.option_a_correct ? 'checked' : ''}> Correct Answer</label>
+          <label class="dlg-radio-label"><input type="radio" name="dlg-e-correct" id="dlg-e-opta-correct" value="a" ${dlg.option_a_correct ? 'checked' : ''}> Correct</label>
         </div>
         <div class="dlg-form-field dlg-f-half">
           <label>Option B</label>
           <textarea id="dlg-e-optb" rows="2">${esc(dlg.option_b_text)}</textarea>
-          <label class="dlg-check-label"><input type="checkbox" id="dlg-e-optb-correct" ${dlg.option_b_correct ? 'checked' : ''}> Correct Answer</label>
+          <label class="dlg-radio-label"><input type="radio" name="dlg-e-correct" id="dlg-e-optb-correct" value="b" ${dlg.option_b_correct ? 'checked' : ''}> Correct</label>
+        </div>
+        <div class="dlg-form-field dlg-f-half">
+          <label>Option C (optional)</label>
+          <textarea id="dlg-e-optc" rows="2">${dlg.option_c_text ? esc(dlg.option_c_text) : ''}</textarea>
+          <label class="dlg-radio-label"><input type="radio" name="dlg-e-correct" id="dlg-e-optc-correct" value="c" ${dlg.option_c_correct ? 'checked' : ''}> Correct</label>
         </div>
       </div>
       <div class="dlg-form-row">
@@ -508,8 +539,14 @@ async function submitEditDialogue(dialogueId) {
   const npc_text = document.getElementById('dlg-e-text')?.value?.trim();
   const option_a_text = document.getElementById('dlg-e-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-e-optb')?.value?.trim();
-  const option_a_correct = document.getElementById('dlg-e-opta-correct')?.checked ? 1 : 0;
-  const option_b_correct = document.getElementById('dlg-e-optb-correct')?.checked ? 1 : 0;
+  const option_c_text = document.getElementById('dlg-e-optc')?.value?.trim() || null;
+  
+  // Radio button logic: only one correct answer
+  const correctOption = document.querySelector('input[name="dlg-e-correct"]:checked')?.value;
+  const option_a_correct = correctOption === 'a' ? 1 : 0;
+  const option_b_correct = correctOption === 'b' ? 1 : 0;
+  const option_c_correct = correctOption === 'c' ? 1 : 0;
+  
   const suspicion_penalty = parseInt(document.getElementById('dlg-e-penalty')?.value) || 10;
   const context_notes = document.getElementById('dlg-e-notes')?.value?.trim() || '';
 
@@ -517,8 +554,8 @@ async function submitEditDialogue(dialogueId) {
     await apiCall(`/quests/dialogues/${dialogueId}`, {
       method: 'PUT',
       body: JSON.stringify({
-        npc_name, npc_text, option_a_text, option_b_text,
-        option_a_correct, option_b_correct, suspicion_penalty, context_notes
+        npc_name, npc_text, option_a_text, option_b_text, option_c_text,
+        option_a_correct, option_b_correct, option_c_correct, suspicion_penalty, context_notes
       })
     });
 
@@ -539,5 +576,24 @@ async function deleteDialogue(dialogueId) {
     if (currentEditQuest) await refreshDialogueList(currentEditQuest.id);
   } catch (err) {
     showT('Failed to delete dialogue', 'error');
+  }
+}
+
+async function saveArtifactPath(questId, inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  
+  const artifact_resource_path = input.value.trim();
+  
+  try {
+    await apiCall(`/quests/${questId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ artifact_resource_path })
+    });
+    
+    showT('AR artifact path saved', 'success');
+  } catch (err) {
+    console.error('Failed to save artifact path:', err);
+    showT('Failed to save artifact path', 'error');
   }
 }
