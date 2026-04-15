@@ -171,8 +171,8 @@
 
         <div class="form-row">
           <div class="field">
-            <label>Age</label>
-            <input type="number" id="r-age" placeholder="18" min="10" max="99" required>
+            <label>Birthdate</label>
+            <input type="date" id="r-birthdate" required>
           </div>
           <div class="field">
             <label>Username</label>
@@ -344,7 +344,7 @@
     const fname = document.getElementById('r-fname').value.trim();
     const lname = document.getElementById('r-lname').value.trim();
     const email = document.getElementById('r-email').value.trim();
-    const age   = parseInt(document.getElementById('r-age').value);
+    const birthdate = document.getElementById('r-birthdate').value;
     const username = document.getElementById('r-username').value.trim();
     const password = document.getElementById('r-password').value;
     const confirm  = document.getElementById('r-confirm').value;
@@ -352,7 +352,7 @@
     // Validation
     if (!fname || !lname) { errEl.textContent = 'Please enter your full name'; return; }
     if (!email) { errEl.textContent = 'Email is required'; return; }
-    if (!age || age < 10 || age > 99) { errEl.textContent = 'Please enter a valid age (10-99)'; return; }
+    if (!birthdate) { errEl.textContent = 'Please select your birthdate'; return; }
     if (username.length < 3) { errEl.textContent = 'Username must be at least 3 characters'; return; }
     if (password.length < 8 || password.length > 12) { errEl.textContent = 'Password must be 8-12 characters'; return; }
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) {
@@ -372,7 +372,7 @@
           username,
           password,
           email,
-          age
+          birthdate
         })
       });
 

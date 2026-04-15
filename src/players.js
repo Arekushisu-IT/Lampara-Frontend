@@ -21,11 +21,11 @@ async function updatePlayerStatus(playerId, playerName, newStatus, actionName) {
   }
 }
 
-function openPM(name, id, section, age, status, chapter, suspicion, codex) {
+function openPM(name, id, section, birthdate, status, chapter, suspicion, codex) {
   document.getElementById('pm-n').textContent = name;
   document.getElementById('pm-i').textContent = id;
   document.getElementById('pm-s').textContent = section;
-  document.getElementById('pm-a').textContent = age;
+  document.getElementById('pm-a').textContent = birthdate;
   document.getElementById('pm-c').textContent = chapter;
   document.getElementById('pm-su').textContent = suspicion + ' / 100 pts';
   document.getElementById('pm-cd').textContent = codex;
@@ -86,7 +86,7 @@ function renderPendingTable(pending) {
       </td>
       <td><span class="mono-sm">${p.id ? '2026-STI-' + String(p.id).padStart(4, '0') : '—'}</span></td>
       <td>${esc(section)}</td>
-      <td>${esc(p.age || '--')}</td>
+      <td>${esc(p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--')}</td>
       <td><span class="mono-sm gold-txt">${esc(p.username) || '—'}</span></td>
       <td><span class="date-sm">${submitted}</span></td>
       <td>
@@ -266,7 +266,7 @@ function renderDashboardPlayers(players) {
         <button class="ab abr" onclick="rejectPending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">REJECT</button>
       `;
     } else {
-      actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
+      actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--'}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
     }
 
     const row = document.createElement('tr');
@@ -308,7 +308,7 @@ function renderPlayerRegistry(players) {
     const codex = `${p.chapter || 1}-${p.current_quest_id || 1}`;
     const codexFull = `Ch.${p.chapter || 1} Q${p.current_quest_id || 1} SQ${p.current_sub_quest || 0}`;
 
-    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.age || '--'}','${displayStatus}','${codexFull}','${p.suspicion || 0}','${codex}')" >VIEW</button>`;
+    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--'}','${displayStatus}','${codexFull}','${p.suspicion || 0}','${codex}')" >VIEW</button>`;
 
     if (p.status === 'active') {
       actionHTML += `<button class="ab absu" onclick="updatePlayerStatus(${p.id}, '${p.name.replace(/'/g, "\\'")}', 'banned', 'Suspended')">SUSPEND</button>`;
