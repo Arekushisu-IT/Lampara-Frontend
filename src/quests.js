@@ -232,17 +232,6 @@ async function openSubQuestModal(mainQuest) {
             <div class="sq-num">SUB-QUEST ${index + 1}</div>
             <div class="sq-card-title">${esc(sub.title || 'Awaiting Storyboard')}</div>
             <div class="sq-card-desc">${esc(sub.description || 'No description available.')}</div>
-            <div class="sq-artifact-field">
-              <label>AR Artifact Path</label>
-              <div class="sq-artifact-picker">
-                <input type="text" class="sq-artifact-input" id="sq-artifact-${sub.id}" value="${esc(sub.artifact_resource_path || '')}" placeholder="e.g., Artifacts/SCP012_Data/SCP-012">
-                <button class="sq-artifact-save" onclick="event.stopPropagation(); saveArtifactPath(${sub.id}, 'sq-artifact-${sub.id}')" title="Save">
-                  <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
             <div class="sq-card-actions">
               <span class="sq-status ${statusClass}">${statusText}</span>
               <button class="sq-edit-dlg-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${esc(sub.title || 'Sub-Quest')}', ${sub.chapter || currentChapter}, ${sub.main_quest}, ${sub.sub_quest})" title="Edit Dialogues">
@@ -282,6 +271,9 @@ async function openSubQuestModal(mainQuest) {
 async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest) {
   currentEditQuest = { id: questId, title: questTitle, chapter, quest, subQuest };
 
+  const qObj = allQuests.find(q => q.id === questId);
+  const artifactPath = qObj ? (qObj.artifact_resource_path || '') : '';
+
   // Update title
   const titleEl = document.getElementById('dlg-mtit');
   if (titleEl) {
@@ -293,7 +285,18 @@ async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest)
   if (infoEl) {
     infoEl.innerHTML = `
       <div class="dlg-info-title">${esc(questTitle)}</div>
-      <div class="dlg-info-sub">Chapter ${chapter} · Quest ${quest} · Sub-Quest ${subQuest}</div>
+      <div class="dlg-info-sub" style="margin-bottom: 15px;">Chapter ${chapter} · Quest ${quest} · Sub-Quest ${subQuest}</div>
+      <div class="sq-artifact-field">
+        <label>AR Artifact Path</label>
+        <div class="sq-artifact-picker">
+          <input type="text" class="sq-artifact-input" id="dlg-artifact-${questId}" value="${esc(artifactPath)}" placeholder="e.g., Artifacts/SCP012_Data/SCP-012">
+          <button class="sq-artifact-save" onclick="event.stopPropagation(); saveArtifactPath(${questId}, 'dlg-artifact-${questId}')" title="Save">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     `;
   }
 
@@ -591,6 +594,10 @@ async function saveArtifactPath(questId, inputId) {
       body: JSON.stringify({ artifact_resource_path })
     });
     
+    // Update local state
+    const qObj = allQuests.find(q => q.id === questId);
+    if(qObj) qObj.artifact_resource_path = artifact_resource_path;
+
     showT('AR artifact path saved', 'success');
   } catch (err) {
     console.error('Failed to save artifact path:', err);
