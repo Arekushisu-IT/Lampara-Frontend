@@ -4,6 +4,8 @@
 
 const ACCOUNTS = {};
 
+// To test with a local backend, local detection is active:
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_CONFIG = {
   baseUrl: 'https://lampara-production.up.railway.app/api',
   // Fallback: if Railway URL has issues, use: '/api' (relative path with proxy)
