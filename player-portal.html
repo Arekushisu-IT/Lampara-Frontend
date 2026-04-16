@@ -1,22 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LAMPARA — Player Portal</title>
   <meta name="description" content="View your quest progression and profile in the Lampara archive.">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0805; --bgp: #100d08; --bgc: #16120b; --bgh: #1e1810;
-      --gold: #c9953a; --goldl: #e8b84b; --goldd: #7a5820;
-      --gok: #2d6a3f; --crim: #8b2020;
-      --tp: #e8dcc8; --ts: #a89070; --td: #6b5740;
-      --bdr: #2e2218; --bdrg: #3d2d14;
+      --bg: #0a0805;
+      --bgp: #100d08;
+      --bgc: #16120b;
+      --bgh: #1e1810;
+      --gold: #c9953a;
+      --goldl: #e8b84b;
+      --goldd: #7a5820;
+      --gok: #2d6a3f;
+      --crim: #8b2020;
+      --tp: #e8dcc8;
+      --ts: #a89070;
+      --td: #6b5740;
+      --bdr: #2e2218;
+      --bdrg: #3d2d14;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Crimson Text', Georgia, serif; background: var(--bg); color: var(--tp); min-height: 100vh;
-      background-image: radial-gradient(ellipse 70% 60% at 50% -5%, rgba(201,149,58,.09) 0%, transparent 70%),
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Crimson Text', Georgia, serif;
+      background: var(--bg);
+      color: var(--tp);
+      min-height: 100vh;
+      background-image: radial-gradient(ellipse 70% 60% at 50% -5%, rgba(201, 149, 58, .09) 0%, transparent 70%),
         url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9953a' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
 
@@ -31,280 +55,696 @@
     }
 
     /* Login Section */
-    #login-view { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-    #portal-view { display: none; }
+    #login-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-    .login-wrap { width: 420px; max-width: 95vw; animation: appear .8s cubic-bezier(.16,1,.3,1) both; }
-    @keyframes appear { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+    #portal-view {
+      display: none;
+    }
 
-    .brand { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
-    .lamp-svg { width: 56px; height: 56px; filter: drop-shadow(0 0 14px rgba(201,149,58,.5)); animation: pulse 3s ease-in-out infinite; margin-bottom: 12px; }
-    @keyframes pulse { 0%,100% { filter: drop-shadow(0 0 10px rgba(201,149,58,.4)); } 50% { filter: drop-shadow(0 0 24px rgba(232,184,75,.7)); } }
-    .brand-title { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 900; letter-spacing: 8px; background: linear-gradient(135deg, var(--goldl), var(--gold), var(--goldd)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
-    .brand-sub { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 4px; color: var(--td); }
+    .login-wrap {
+      width: 420px;
+      max-width: 95vw;
+      animation: appear .8s cubic-bezier(.16, 1, .3, 1) both;
+    }
 
-    .lcard { background: var(--bgp); border: 1px solid var(--bdrg); border-radius: 10px; padding: 28px; box-shadow: 0 24px 70px rgba(0,0,0,.7); position: relative; overflow: hidden; }
-    .lcard::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .5; }
-    .lcard-title { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 3px; color: var(--ts); text-align: center; margin-bottom: 18px; }
+    @keyframes appear {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
 
-    .field { margin-bottom: 14px; }
-    .field label { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 2px; color: var(--td); display: block; margin-bottom: 5px; }
-    .field input { width: 100%; background: var(--bgc); border: 1px solid var(--bdr); border-radius: 5px; padding: 11px 12px; color: var(--tp); font-family: 'Crimson Text', serif; font-size: 14px; outline: none; transition: border-color .3s; }
-    .field input:focus { border-color: var(--gold); }
-    .field input::placeholder { color: var(--td); opacity: .6; }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-    .btn-primary { width: 100%; padding: 12px; background: linear-gradient(135deg, rgba(201,149,58,.22), rgba(201,149,58,.08)); border: 1px solid var(--goldd); border-radius: 5px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; letter-spacing: 4px; color: var(--goldl); cursor: pointer; transition: all .25s; }
-    .btn-primary:hover { border-color: var(--gold); box-shadow: 0 0 20px rgba(201,149,58,.2); }
-    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+    }
 
-    .login-err { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #e06060; text-align: center; margin-bottom: 10px; min-height: 14px; }
-    .login-foot { text-align: center; margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--ts); letter-spacing: 1px; }
-    .login-foot a { color: var(--goldl); text-decoration: none; font-weight: 600; }
-    .login-foot a:hover { color: var(--gold); text-decoration: underline; }
+    .lamp-svg {
+      width: 56px;
+      height: 56px;
+      filter: drop-shadow(0 0 14px rgba(201, 149, 58, .5));
+      animation: pulse 3s ease-in-out infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 10px rgba(201, 149, 58, .4));
+      }
+
+      50% {
+        filter: drop-shadow(0 0 24px rgba(232, 184, 75, .7));
+      }
+    }
+
+    .brand-title {
+      font-family: 'Cinzel', serif;
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      background: linear-gradient(135deg, var(--goldl), var(--gold), var(--goldd));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 4px;
+    }
+
+    .brand-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 4px;
+      color: var(--td);
+    }
+
+    .lcard {
+      background: var(--bgp);
+      border: 1px solid var(--bdrg);
+      border-radius: 10px;
+      padding: 28px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .7);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .lcard::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: .5;
+    }
+
+    .lcard-title {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--ts);
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: var(--td);
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bgc);
+      border: 1px solid var(--bdr);
+      border-radius: 5px;
+      padding: 11px 12px;
+      color: var(--tp);
+      font-family: 'Crimson Text', serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .3s;
+    }
+
+    .field input:focus {
+      border-color: var(--gold);
+    }
+
+    .field input::placeholder {
+      color: var(--td);
+      opacity: .6;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(201, 149, 58, .22), rgba(201, 149, 58, .08));
+      border: 1px solid var(--goldd);
+      border-radius: 5px;
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--goldl);
+      cursor: pointer;
+      transition: all .25s;
+    }
+
+    .btn-primary:hover {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(201, 149, 58, .2);
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .login-err {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: #e06060;
+      text-align: center;
+      margin-bottom: 10px;
+      min-height: 14px;
+    }
+
+    .login-foot {
+      text-align: center;
+      margin-top: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--ts);
+      letter-spacing: 1px;
+    }
+
+    .login-foot a {
+      color: var(--goldl);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .login-foot a:hover {
+      color: var(--gold);
+      text-decoration: underline;
+    }
 
     /* PORTAL LAYOUT */
-    .portal-header { padding: 16px 24px; background: var(--bgp); border-bottom: 1px solid var(--bdrg); display: flex; align-items: center; gap: 12px; }
-    .portal-brand { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 900; letter-spacing: 4px; background: linear-gradient(135deg, var(--goldl), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; flex: 1; }
-    .portal-user { display: flex; align-items: center; gap: 8px; }
-    .portal-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#2d6a3f,#6dba85); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 700; color: #fff; }
-    .portal-name { font-size: 12px; color: var(--tp); font-weight: 600; }
-    .portal-codex { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--gold); }
-    .portal-logout { background: none; border: 1px solid var(--bdr); border-radius: 3px; padding: 5px 10px; font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--td); cursor: pointer; letter-spacing: 1px; transition: all .2s; }
-    .portal-logout:hover { border-color: var(--crim); color: #e06060; }
+    .portal-header {
+      padding: 16px 24px;
+      background: var(--bgp);
+      border-bottom: 1px solid var(--bdrg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-    .portal-content { padding: 24px; max-width: 900px; margin: 0 auto; }
+    .portal-brand {
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, var(--goldl), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      flex: 1;
+    }
+
+    .portal-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .portal-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2d6a3f, #6dba85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .portal-name {
+      font-size: 12px;
+      color: var(--tp);
+      font-weight: 600;
+    }
+
+    .portal-codex {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--gold);
+    }
+
+    .portal-logout {
+      background: none;
+      border: 1px solid var(--bdr);
+      border-radius: 3px;
+      padding: 5px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      color: var(--td);
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .2s;
+    }
+
+    .portal-logout:hover {
+      border-color: var(--crim);
+      color: #e06060;
+    }
+
+    .portal-content {
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
 
     /* Profile Card */
-    .profile-card { background: var(--bgp); border: 1px solid var(--bdrg); border-radius: 8px; padding: 20px; margin-bottom: 18px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; position: relative; overflow: hidden; }
-    .profile-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .4; }
-    .profile-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg,#2d6a3f,#6dba85); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; color: #fff; }
-    .profile-info h2 { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700; color: var(--tp); margin-bottom: 3px; }
-    .profile-meta { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--td); letter-spacing: 1px; }
-    .profile-stats { display: flex; gap: 16px; }
-    .profile-stat { text-align: center; }
-    .profile-stat-val { font-family: 'Cinzel', serif; font-size: 22px; font-weight: 700; color: var(--goldl); }
-    .profile-stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 7px; letter-spacing: 1.5px; color: var(--td); text-transform: uppercase; }
+    .profile-card {
+      background: var(--bgp);
+      border: 1px solid var(--bdrg);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 18px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: .4;
+    }
+
+    .profile-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2d6a3f, #6dba85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .profile-info h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--tp);
+      margin-bottom: 3px;
+    }
+
+    .profile-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: var(--td);
+      letter-spacing: 1px;
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .profile-stat {
+      text-align: center;
+    }
+
+    .profile-stat-val {
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--goldl);
+    }
+
+    .profile-stat-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7px;
+      letter-spacing: 1.5px;
+      color: var(--td);
+      text-transform: uppercase;
+    }
 
     /* Progression */
-    .section-title { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--tp); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
-    .section-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--bdrg), transparent); }
+    .section-title {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--tp);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-    .chapter-card { background: var(--bgp); border: 1px solid var(--bdrg); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
-    .chapter-header { padding: 14px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background .2s; }
-    .chapter-header:hover { background: var(--bgh); }
-    .chapter-num { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--gold); min-width: 80px; }
-    .chapter-bar { flex: 1; height: 6px; background: var(--bdr); border-radius: 3px; overflow: hidden; }
-    .chapter-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--goldd), var(--gold)); transition: width .5s ease; }
-    .chapter-pct { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ts); min-width: 40px; text-align: right; }
-    .chapter-body { padding: 0 16px 14px; border-top: 1px solid var(--bdr); display: none; }
-    .chapter-body.open { display: block; padding-top: 12px; }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--bdrg), transparent);
+    }
 
-    .quest-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(46,34,24,.5); }
-    .quest-row:last-child { border-bottom: none; }
-    .quest-label { font-size: 11px; color: var(--ts); flex: 1; }
-    .quest-check { font-size: 10px; }
-    .quest-check.done { color: #6dba85; }
-    .quest-check.not { color: var(--td); opacity: .4; }
+    .chapter-card {
+      background: var(--bgp);
+      border: 1px solid var(--bdrg);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
 
-    .empty-state { text-align: center; padding: 40px; color: var(--td); }
-    .empty-state-icon { font-size: 36px; margin-bottom: 8px; opacity: .4; }
-    .empty-state-text { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 2px; color: var(--ts); }
+    .chapter-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .chapter-header:hover {
+      background: var(--bgh);
+    }
+
+    .chapter-num {
+      font-family: 'Cinzel', serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold);
+      min-width: 80px;
+    }
+
+    .chapter-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--bdr);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .chapter-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--goldd), var(--gold));
+      transition: width .5s ease;
+    }
+
+    .chapter-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--ts);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .chapter-body {
+      padding: 0 16px 14px;
+      border-top: 1px solid var(--bdr);
+      display: none;
+    }
+
+    .chapter-body.open {
+      display: block;
+      padding-top: 12px;
+    }
+
+    .quest-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(46, 34, 24, .5);
+    }
+
+    .quest-row:last-child {
+      border-bottom: none;
+    }
+
+    .quest-label {
+      font-size: 11px;
+      color: var(--ts);
+      flex: 1;
+    }
+
+    .quest-check {
+      font-size: 10px;
+    }
+
+    .quest-check.done {
+      color: #6dba85;
+    }
+
+    .quest-check.not {
+      color: var(--td);
+      opacity: .4;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--td);
+    }
+
+    .empty-state-icon {
+      font-size: 36px;
+      margin-bottom: 8px;
+      opacity: .4;
+    }
+
+    .empty-state-text {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: var(--ts);
+    }
   </style>
 </head>
+
 <body>
 
-<!-- LOGIN VIEW -->
-<div id="login-view">
-  <div class="login-wrap">
-    <div class="brand">
-      <svg class="lamp-svg" viewBox="0 0 64 64" fill="none">
-        <path d="M32 6C32 6 20 18 20 30C20 36.6 23.6 42.4 28 46V54H36V46C40.4 42.4 44 36.6 44 30C44 18 32 6 32 6Z" fill="url(#lg1)" opacity="0.92"/>
-        <ellipse cx="32" cy="29" rx="7" ry="9" fill="url(#lg2)" opacity="0.65"/>
-        <path d="M27 54H37V57H27V54Z" fill="#7a5820"/><path d="M25 57H39V61H25V57Z" fill="#5a3e10"/>
-        <defs>
-          <linearGradient id="lg1" x1="32" y1="6" x2="32" y2="57" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#e8b84b"/><stop offset="100%" stop-color="#7a5820"/></linearGradient>
-          <radialGradient id="lg2" cx="50%" cy="40%"><stop offset="0%" stop-color="#fff8e8"/><stop offset="100%" stop-color="#f0a832" stop-opacity="0"/></radialGradient>
-        </defs>
-      </svg>
-      <div class="brand-title">LAMPARA</div>
-      <div class="brand-sub">Player Portal</div>
-    </div>
-
-    <div class="lcard">
-      <div class="lcard-title">SIGN IN TO YOUR ACCOUNT</div>
-      <div class="field">
-        <label>USERNAME</label>
-        <input type="text" id="pl-user" placeholder="Your username">
+  <!-- LOGIN VIEW -->
+  <div id="login-view">
+    <div class="login-wrap">
+      <div class="brand">
+        <svg class="lamp-svg" viewBox="0 0 64 64" fill="none">
+          <path d="M32 6C32 6 20 18 20 30C20 36.6 23.6 42.4 28 46V54H36V46C40.4 42.4 44 36.6 44 30C44 18 32 6 32 6Z"
+            fill="url(#lg1)" opacity="0.92" />
+          <ellipse cx="32" cy="29" rx="7" ry="9" fill="url(#lg2)" opacity="0.65" />
+          <path d="M27 54H37V57H27V54Z" fill="#7a5820" />
+          <path d="M25 57H39V61H25V57Z" fill="#5a3e10" />
+          <defs>
+            <linearGradient id="lg1" x1="32" y1="6" x2="32" y2="57" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#e8b84b" />
+              <stop offset="100%" stop-color="#7a5820" />
+            </linearGradient>
+            <radialGradient id="lg2" cx="50%" cy="40%">
+              <stop offset="0%" stop-color="#fff8e8" />
+              <stop offset="100%" stop-color="#f0a832" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+        </svg>
+        <div class="brand-title">LAMPARA</div>
+        <div class="brand-sub">Player Portal</div>
       </div>
-      <div class="field">
-        <label>PASSWORD</label>
-        <input type="password" id="pl-pass" placeholder="Your password">
-      </div>
-      <div class="login-err" id="pl-err"></div>
-      <button class="btn-primary" id="pl-login-btn" onclick="playerLogin()">⚜ SIGN IN</button>
-    </div>
 
-    <div class="login-foot">
-      Don't have an account? <a href="register.html">Register here</a>
-    </div>
-  </div>
-</div>
-
-<!-- PORTAL VIEW -->
-<div id="portal-view">
-  <div class="portal-header">
-    <div class="portal-brand">⚜ LAMPARA</div>
-    <div class="portal-user">
-      <div class="portal-avatar" id="p-avatar">—</div>
-      <div>
-        <div class="portal-name" id="p-name">Player</div>
-        <div class="portal-codex" id="p-codex">Codex: —</div>
-      </div>
-    </div>
-    <button class="portal-logout" onclick="portalLogout()">SIGN OUT</button>
-  </div>
-
-  <div class="portal-content">
-    <div class="profile-card">
-      <div class="profile-avatar" id="p-big-avatar">—</div>
-      <div class="profile-info">
-        <h2 id="p-full-name">Player Name</h2>
-        <div class="profile-meta" id="p-meta">@username · email@example.com</div>
-      </div>
-      <div class="profile-stats">
-        <div class="profile-stat">
-          <div class="profile-stat-val" id="p-progress">0%</div>
-          <div class="profile-stat-lbl">Progress</div>
+      <div class="lcard">
+        <div class="lcard-title">SIGN IN TO YOUR ACCOUNT</div>
+        <div class="field">
+          <label>USERNAME</label>
+          <input type="text" id="pl-user" placeholder="Your username">
         </div>
-        <div class="profile-stat">
-          <div class="profile-stat-val" id="p-chapter">1</div>
-          <div class="profile-stat-lbl">Chapter</div>
+        <div class="field">
+          <label>PASSWORD</label>
+          <input type="password" id="pl-pass" placeholder="Your password">
+        </div>
+        <div class="login-err" id="pl-err"></div>
+        <button class="btn-primary" id="pl-login-btn" onclick="playerLogin()">⚜ SIGN IN</button>
+      </div>
+
+      <div class="login-foot">
+        Don't have an account? <a href="/register">Register here</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTAL VIEW -->
+  <div id="portal-view">
+    <div class="portal-header">
+      <div class="portal-brand">⚜ LAMPARA</div>
+      <div class="portal-user">
+        <div class="portal-avatar" id="p-avatar">—</div>
+        <div>
+          <div class="portal-name" id="p-name">Player</div>
+          <div class="portal-codex" id="p-codex">Codex: —</div>
         </div>
       </div>
+      <button class="portal-logout" onclick="portalLogout()">SIGN OUT</button>
     </div>
 
-    <div class="section-title">QUEST PROGRESSION</div>
-    <div id="progression-container">
-      <div class="empty-state">
-        <div class="empty-state-icon">📜</div>
-        <div class="empty-state-text">Loading progression...</div>
+    <div class="portal-content">
+      <div class="profile-card">
+        <div class="profile-avatar" id="p-big-avatar">—</div>
+        <div class="profile-info">
+          <h2 id="p-full-name">Player Name</h2>
+          <div class="profile-meta" id="p-meta">@username · email@example.com</div>
+        </div>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-val" id="p-progress">0%</div>
+            <div class="profile-stat-lbl">Progress</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-val" id="p-chapter">1</div>
+            <div class="profile-stat-lbl">Chapter</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">QUEST PROGRESSION</div>
+      <div id="progression-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">📜</div>
+          <div class="empty-state-text">Loading progression...</div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-  // ⚠ API URL source of truth: src/config.js (API_CONFIG.baseUrl)
-  // This standalone page duplicates it for self-containment.
-  const API_BASE = 'https://lampara-production.up.railway.app/api';
-  let playerToken = localStorage.getItem('lampara_player_token');
-  let playerData = null;
+  <script>
+    // ⚠ API URL source of truth: src/config.js (API_CONFIG.baseUrl)
+    // This standalone page duplicates it for self-containment.
+    const API_BASE = 'https://lampara-production.up.railway.app/api';
+    let playerToken = localStorage.getItem('lampara_player_token');
+    let playerData = null;
 
-  // Check if already logged in
-  if (playerToken) {
-    checkSession();
-  }
-
-  // Enter key on password field
-  document.getElementById('pl-pass')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') playerLogin();
-  });
-
-  async function playerLogin() {
-    const username = document.getElementById('pl-user').value.trim();
-    const password = document.getElementById('pl-pass').value;
-    const errEl = document.getElementById('pl-err');
-    errEl.textContent = '';
-
-    if (!username || !password) { errEl.textContent = 'Username and password required'; return; }
-
-    const btn = document.getElementById('pl-login-btn');
-    btn.disabled = true;
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/player-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-
-      if (!res.ok) { errEl.textContent = data.error || 'Login failed'; btn.disabled = false; return; }
-
-      playerToken = data.token;
-      playerData = data.player;
-      localStorage.setItem('lampara_player_token', playerToken);
-
-      showPortal();
-    } catch {
-      errEl.textContent = 'Could not connect to server';
-      btn.disabled = false;
+    // Check if already logged in
+    if (playerToken) {
+      checkSession();
     }
-  }
 
-  async function checkSession() {
-    try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { 'Authorization': `Bearer ${playerToken}` }
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      playerData = data.user;
-      showPortal();
-    } catch {
-      localStorage.removeItem('lampara_player_token');
-      playerToken = null;
+    // Enter key on password field
+    document.getElementById('pl-pass')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') playerLogin();
+    });
+
+    async function playerLogin() {
+      const username = document.getElementById('pl-user').value.trim();
+      const password = document.getElementById('pl-pass').value;
+      const errEl = document.getElementById('pl-err');
+      errEl.textContent = '';
+
+      if (!username || !password) { errEl.textContent = 'Username and password required'; return; }
+
+      const btn = document.getElementById('pl-login-btn');
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/player-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) { errEl.textContent = data.error || 'Login failed'; btn.disabled = false; return; }
+
+        playerToken = data.token;
+        playerData = data.player;
+        localStorage.setItem('lampara_player_token', playerToken);
+
+        showPortal();
+      } catch {
+        errEl.textContent = 'Could not connect to server';
+        btn.disabled = false;
+      }
     }
-  }
 
-  function showPortal() {
-    document.getElementById('login-view').style.display = 'none';
-    document.getElementById('portal-view').style.display = 'block';
-
-    const p = playerData;
-    const initials = p.name ? p.name.substring(0, 2).toUpperCase() : '??';
-    const codex = `${p.chapter || 1}-${p.current_main_quest || 1}`;
-
-    document.getElementById('p-avatar').textContent = initials;
-    document.getElementById('p-big-avatar').textContent = initials;
-    document.getElementById('p-name').textContent = p.name;
-    document.getElementById('p-full-name').textContent = p.name;
-    document.getElementById('p-meta').textContent = `@${p.username} · ${p.email || '—'}`;
-    document.getElementById('p-codex').textContent = `Codex: ${codex}`;
-    document.getElementById('p-chapter').textContent = p.chapter || 1;
-
-    loadProgression();
-  }
-
-  async function loadProgression() {
-    const container = document.getElementById('progression-container');
-    try {
-      const res = await fetch(`${API_BASE}/players/${playerData.id}/progression`, {
-        headers: { 'Authorization': `Bearer ${playerToken}` }
-      });
-
-      if (!res.ok) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">No quest data available yet</div></div>';
-        return;
+    async function checkSession() {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${playerToken}` }
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        playerData = data.user;
+        showPortal();
+      } catch {
+        localStorage.removeItem('lampara_player_token');
+        playerToken = null;
       }
+    }
 
-      const data = await res.json();
-      document.getElementById('p-progress').textContent = data.overall_progress + '%';
+    function showPortal() {
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('portal-view').style.display = 'block';
 
-      if (!data.chapters || data.chapters.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Your journey has not started yet</div></div>';
-        return;
-      }
+      const p = playerData;
+      const initials = p.name ? p.name.substring(0, 2).toUpperCase() : '??';
+      const codex = `${p.chapter || 1}-${p.current_main_quest || 1}`;
 
-      container.innerHTML = '';
-      data.chapters.forEach(ch => {
-        const totalSubs = ch.quests.reduce((sum, q) => sum + q.total_count, 0);
-        const completedSubs = ch.quests.reduce((sum, q) => sum + q.completed_count, 0);
-        const pct = totalSubs > 0 ? Math.round((completedSubs / totalSubs) * 100) : 0;
+      document.getElementById('p-avatar').textContent = initials;
+      document.getElementById('p-big-avatar').textContent = initials;
+      document.getElementById('p-name').textContent = p.name;
+      document.getElementById('p-full-name').textContent = p.name;
+      document.getElementById('p-meta').textContent = `@${p.username} · ${p.email || '—'}`;
+      document.getElementById('p-codex').textContent = `Codex: ${codex}`;
+      document.getElementById('p-chapter').textContent = p.chapter || 1;
 
-        const card = document.createElement('div');
-        card.className = 'chapter-card';
-        card.innerHTML = `
+      loadProgression();
+    }
+
+    async function loadProgression() {
+      const container = document.getElementById('progression-container');
+      try {
+        const res = await fetch(`${API_BASE}/players/${playerData.id}/progression`, {
+          headers: { 'Authorization': `Bearer ${playerToken}` }
+        });
+
+        if (!res.ok) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">No quest data available yet</div></div>';
+          return;
+        }
+
+        const data = await res.json();
+        document.getElementById('p-progress').textContent = data.overall_progress + '%';
+
+        if (!data.chapters || data.chapters.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Your journey has not started yet</div></div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        data.chapters.forEach(ch => {
+          const totalSubs = ch.quests.reduce((sum, q) => sum + q.total_count, 0);
+          const completedSubs = ch.quests.reduce((sum, q) => sum + q.completed_count, 0);
+          const pct = totalSubs > 0 ? Math.round((completedSubs / totalSubs) * 100) : 0;
+
+          const card = document.createElement('div');
+          card.className = 'chapter-card';
+          card.innerHTML = `
           <div class="chapter-header" onclick="this.nextElementSibling.classList.toggle('open')">
             <div class="chapter-num">CHAPTER ${ch.chapter}</div>
             <div class="chapter-bar"><div class="chapter-fill" style="width:${pct}%"></div></div>
@@ -324,26 +764,27 @@
             `).join('')}
           </div>
         `;
-        container.appendChild(card);
-      });
-    } catch {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text">Failed to load progression data</div></div>';
+          container.appendChild(card);
+        });
+      } catch {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text">Failed to load progression data</div></div>';
+      }
     }
-  }
 
-  function portalLogout() {
-    // Call logout endpoint
-    if (playerToken) {
-      fetch(`${API_BASE}/auth/player-logout`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${playerToken}`, 'Content-Type': 'application/json' }
-      }).catch(() => {});
+    function portalLogout() {
+      // Call logout endpoint
+      if (playerToken) {
+        fetch(`${API_BASE}/auth/player-logout`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${playerToken}`, 'Content-Type': 'application/json' }
+        }).catch(() => { });
+      }
+      localStorage.removeItem('lampara_player_token');
+      playerToken = null;
+      playerData = null;
+      location.reload();
     }
-    localStorage.removeItem('lampara_player_token');
-    playerToken = null;
-    playerData = null;
-    location.reload();
-  }
-</script>
+  </script>
 </body>
+
 </html>

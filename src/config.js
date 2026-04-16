@@ -4,11 +4,11 @@
 
 const ACCOUNTS = {};
 
-// To test with a local backend, local detection is active:
+// Production backend is down, using local for now
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 const API_CONFIG = {
-  baseUrl: 'https://lampara-production.up.railway.app/api',
-  // Fallback: if Railway URL has issues, use: '/api' (relative path with proxy)
+  baseUrl: 'http://localhost:8080/api',
 };
 
 const ROLE_META = {
@@ -16,24 +16,25 @@ const ROLE_META = {
 };
 
 const PANEL_TITLES = {
-  db:  'DASHBOARD OVERVIEW',
-  pl:  'PLAYER MANAGEMENT',
-  vr:  'VERIFICATION & APPROVAL',
-  qt:  'QUEST MANAGEMENT',
-  gs:  'GAME SETTINGS',
-  lg:  'ACTIVITY LOGS'
+  db: 'DASHBOARD OVERVIEW',
+  pl: 'PLAYER MANAGEMENT',
+  vr: 'VERIFICATION & APPROVAL',
+  qt: 'QUEST MANAGEMENT',
+  gs: 'GAME SETTINGS',
+  lb: 'PLAYER LEADERBOARD',
+  lg: 'ACTIVITY LOGS'
 };
 
 const LOG_PILLS = {
-  'LOGIN':          'pa',
-  'LOGOUT':         'pst',
-  'APPROVED':       'pa',
-  'REJECTED':       'ps',
-  'SUSPENDED':      'ps',
-  'REINSTATED':     'pa',
-  'ADDED ADMIN':    'pp',
-  'EDITED ADMIN':   'pp',
-  'REMOVED ADMIN':  'ps'
+  'LOGIN': 'pa',
+  'LOGOUT': 'pst',
+  'APPROVED': 'pa',
+  'REJECTED': 'ps',
+  'SUSPENDED': 'ps',
+  'REINSTATED': 'pa',
+  'ADDED ADMIN': 'pp',
+  'EDITED ADMIN': 'pp',
+  'REMOVED ADMIN': 'ps'
 };
 
 const TOAST_ICONS = { success: '⚜', error: '✕', info: '◈' };

@@ -20,7 +20,7 @@ function initChapterTabs() {
 // Switch to a different chapter
 function switchChapter(chapterNum) {
   currentChapter = chapterNum;
-  
+
   // Update tab active states
   const tabs = document.querySelectorAll('.chapter-tab');
   tabs.forEach(tab => {
@@ -48,52 +48,36 @@ function renderChapterQuests(chapterNum) {
 
   container.innerHTML = '';
 
-  // Chapter 1 & 2: Show quests from database if available
-  if (chapterNum === 1 || chapterNum === 2) {
-    renderChapterQuestsFromDB(container, chapterNum);
-  } else {
-    // Chapters 3-5: Show "Awaiting Storyboard" for all 7 quests
-    renderStandbyChapter(container, chapterNum);
-  }
-}
+  const startIndex = (chapterNum - 1) * 5;
+  const chapterQuests = allQuests.slice(startIndex, startIndex + 5);
 
-// Render chapter quests from database
-function renderChapterQuestsFromDB(container, chapterNum) {
-  // Filter for the selected chapter
-  const chapterQuests = allQuests.filter(q => q.chapter === chapterNum);
+  let activeCount = 0;
 
-  // Group by Quest (1 to 7)
-  const quests = [];
-  for (let mq = 1; mq <= 7; mq++) {
-    const subs = chapterQuests.filter(q => q.main_quest === mq);
-    const isActive = subs.length === 5 && subs.every(sq => sq.status === 'active');
-    quests.push({ id: mq, subs, isActive });
-  }
+  for (let index = 0; index < 5; index++) {
+    const sub = chapterQuests[index];
+    
+    const isActive = sub && (sub.status === 'active' || sub.status === 'completed');
+    if (isActive) activeCount++;
 
-  // Render the cards
-  quests.forEach(mq => {
-    const activeCount = mq.subs.filter(sq => sq.status === 'active').length;
-    const progressPct = Math.round((activeCount / 5) * 100);
-
-    const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][mq.id - 1];
-    const title = mq.isActive && mq.subs[0] ? mq.subs[0].title : 'Awaiting Storyboard';
-    const statusClass = mq.isActive ? 'pa' : 'pp';
-    const statusText = mq.isActive ? 'ACTIVE' : 'STANDBY';
+    const roman = ['I', 'II', 'III', 'IV', 'V'][index];
+    const title = sub ? (sub.title || 'Awaiting Storyboard') : 'Awaiting Storyboard';
+    const description = sub ? (sub.description || 'No description available.') : 'No description available.';
+    const statusClass = isActive ? 'pa' : 'pp';
+    const statusText = isActive ? 'ACTIVE' : 'STANDBY';
 
     const card = document.createElement('div');
-    card.className = `cc ${!mq.isActive ? 'sb' : ''}`;
+    card.className = `cc ${!isActive ? 'sb' : ''}`;
+
+    let safeTitle = esc(title).replace(/'/g, "\\'");
 
     card.innerHTML = `
       <div class="cdec">${roman}</div>
-      <div class="cnum">QUEST ${mq.id}</div>
+      <div class="cnum">QUEST ${index + 1}</div>
       <div class="ctit">${esc(title)}</div>
-      <div class="csub">${activeCount}/5 Sub-Quests</div>
-      <div class="cmeta">
-        <div class="cmi">Progress<span class="cmv">${progressPct}%</span></div>
-      </div>
+      <div class="csub">${esc(description)}</div>
       <span class="pill ${statusClass}">${statusText}</span>
 
-      ${!mq.isActive ? `
+      ${!isActive ? `
         <div class="sbov">
           <div class="sbtx">STANDBY</div>
         </div>
@@ -101,59 +85,24 @@ function renderChapterQuestsFromDB(container, chapterNum) {
           <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
         </svg>
       ` : ''}
-    `;
 
-    card.onclick = () => {
-      if (mq.isActive) {
-        openSubQuestModal(mq);
-      }
-    };
-    container.appendChild(card);
-  });
-
-  // Update header stats
-  updateChapterStats(chapterQuests);
-}
-
-// Render standby chapters (3-5)
-function renderStandbyChapter(container, chapterNum) {
-  const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-  
-  for (let mq = 1; mq <= 7; mq++) {
-    const card = document.createElement('div');
-    card.className = 'cc sb';
-
-    card.innerHTML = `
-      <div class="cdec">${roman[mq - 1]}</div>
-      <div class="cnum">QUEST ${mq}</div>
-      <div class="ctit">Awaiting Storyboard</div>
-      <div class="csub">0/5 Sub-Quests</div>
-      <div class="cmeta">
-        <div class="cmi">Progress<span class="cmv">0%</span></div>
-      </div>
-      <span class="pill pp">STANDBY</span>
-      
-      <div class="sbov">
-        <div class="sbtx">STANDBY</div>
-      </div>
-      <svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-      </svg>
+      ${isActive ? `
+        <button class="cq-edit-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${safeTitle}', ${sub.chapter}, ${sub.main_quest}, ${sub.sub_quest})" style="margin-top: 15px; width: 100%; border-radius: 4px; padding: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid rgba(232, 184, 75, 0.4); background: rgba(26, 22, 17, 0.8); color: var(--goldl); transition: all 0.2s;">
+          <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+          </svg>
+          DIALOGUES
+        </button>
+      ` : ''}
     `;
 
     container.appendChild(card);
   }
 
-  // Update header stats for standby chapters
-  updateChapterStats([]);
-}
-
-// Update chapter statistics
-function updateChapterStats(quests) {
+  // Update header stats
   const statLbl = document.getElementById('stat-qt-chap');
   if (statLbl) {
-    const activeCount = quests.filter(q => q.status === 'active').length;
-    statLbl.textContent = `${activeCount} ACTIVE · ${quests.length - activeCount} STANDBY`;
+    statLbl.textContent = `${activeCount} ACTIVE · ${5 - activeCount} STANDBY`;
   }
 }
 
@@ -164,7 +113,7 @@ async function fetchAndRenderQuests() {
     let quests = await apiCall('/quests');
     if (quests.quests) quests = quests.quests;
     if (!Array.isArray(quests)) quests = [];
-    
+
     allQuests = quests;
 
     // Initialize chapter tabs
@@ -178,97 +127,14 @@ async function fetchAndRenderQuests() {
   }
 }
 
-// ============================================================
-// SUB-QUEST MODAL
-// ============================================================
-async function openSubQuestModal(mainQuest) {
-  try {
-    // Update modal title
-    const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][mainQuest.id - 1];
-    const modalTitle = document.getElementById('sq-mtit');
-    if (modalTitle) {
-      modalTitle.textContent = `QUEST ${mainQuest.id} — ${roman}`;
-    }
 
-    // Update info section
-    const infoSection = document.getElementById('sq-info');
-    if (infoSection) {
-      const firstSubTitle = mainQuest.subs[0]?.title || 'Awaiting Storyboard';
-      const activeCount = mainQuest.subs.filter(sq => sq.status === 'active').length;
-      infoSection.innerHTML = `
-        <div class="sq-title">${esc(firstSubTitle)}</div>
-        <div class="sq-subtitle">${activeCount}/5 Sub-Quests Active</div>
-      `;
-    }
-
-    // Render sub-quest cards
-    const grid = document.getElementById('sq-grid');
-    if (grid) {
-      grid.innerHTML = '';
-      
-      if (mainQuest.subs.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--td); font-size: 11px; padding: 20px;">No sub-quests available yet.</div>';
-      } else {
-        mainQuest.subs.forEach((sub, index) => {
-          const card = document.createElement('div');
-          
-          // Determine status
-          let statusClass = 'sq-inactive';
-          let statusText = 'INACTIVE';
-          let cardExtraClass = 'sq-locked';
-          
-          if (sub.status === 'active') {
-            statusClass = 'sq-active';
-            statusText = 'ACTIVE';
-            cardExtraClass = '';
-          } else if (sub.status === 'completed') {
-            statusClass = 'sq-active';
-            statusText = 'COMPLETED';
-            cardExtraClass = 'sq-completed';
-          }
-
-          card.className = `sq-card ${cardExtraClass}`;
-          card.innerHTML = `
-            <div class="sq-num">SUB-QUEST ${index + 1}</div>
-            <div class="sq-card-title">${esc(sub.title || 'Awaiting Storyboard')}</div>
-            <div class="sq-card-desc">${esc(sub.description || 'No description available.')}</div>
-            <div class="sq-card-actions">
-              <span class="sq-status ${statusClass}">${statusText}</span>
-              <button class="sq-edit-dlg-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${esc(sub.title || 'Sub-Quest')}', ${sub.chapter || currentChapter}, ${sub.main_quest}, ${sub.sub_quest})" title="Edit Dialogues">
-                <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
-                DIALOGUES
-              </button>
-            </div>
-          `;
-
-          // Click handler for sub-quest
-          card.onclick = () => {
-            if (sub.status === 'active') {
-              openDialogueEditor(sub.id, sub.title || 'Sub-Quest', sub.chapter || currentChapter, sub.main_quest, sub.sub_quest);
-            }
-          };
-
-          grid.appendChild(card);
-        });
-      }
-    }
-
-    // Open the modal
-    const modal = document.getElementById('mov-subquest');
-    if (modal) {
-      modal.classList.add('open');
-    }
-
-  } catch (err) {
-    console.error('Failed to open sub-quest modal:', err);
-    showT('Error loading sub-quests', 'error');
-  }
-}
 
 // ============================================================
 // DIALOGUE EDITOR
 // ============================================================
 async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest) {
+  // Try to find the index to pass as the Quest Number
+  const indexOrQuest = allQuests.filter(q => q.chapter === chapter).findIndex(q => q.id === questId) + 1;
   currentEditQuest = { id: questId, title: questTitle, chapter, quest, subQuest };
 
   const qObj = allQuests.find(q => q.id === questId);
@@ -277,7 +143,7 @@ async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest)
   // Update title
   const titleEl = document.getElementById('dlg-mtit');
   if (titleEl) {
-    titleEl.textContent = `DIALOGUE EDITOR — Ch.${chapter} Q${quest} SQ${subQuest}`;
+    titleEl.textContent = `DIALOGUE EDITOR — Quest ${indexOrQuest || quest}`;
   }
 
   // Update quest info
@@ -285,7 +151,7 @@ async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest)
   if (infoEl) {
     infoEl.innerHTML = `
       <div class="dlg-info-title">${esc(questTitle)}</div>
-      <div class="dlg-info-sub" style="margin-bottom: 15px;">Chapter ${chapter} · Quest ${quest} · Sub-Quest ${subQuest}</div>
+      <div class="dlg-info-sub" style="margin-bottom: 15px;">Quest ${indexOrQuest || quest} (Chapter ${chapter})</div>
       <div class="sq-artifact-field">
         <label>AR Artifact Path</label>
         <div class="sq-artifact-picker">
@@ -360,7 +226,8 @@ async function refreshDialogueList(questId) {
           ${dlg.context_notes ? `<div class="dlg-notes">📝 ${esc(dlg.context_notes)}</div>` : ''}
         </div>
       `;
-      listEl.appendChild(entry);
+
+listEl.appendChild(entry);
     });
   } catch (err) {
     console.error('Failed to load dialogues:', err);
@@ -436,13 +303,13 @@ async function submitNewDialogue() {
   const option_a_text = document.getElementById('dlg-f-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-f-optb')?.value?.trim();
   const option_c_text = document.getElementById('dlg-f-optc')?.value?.trim() || null;
-  
+
   // Radio button logic: only one correct answer
   const correctOption = document.querySelector('input[name="dlg-f-correct"]:checked')?.value;
   const option_a_correct = correctOption === 'a' ? 1 : 0;
   const option_b_correct = correctOption === 'b' ? 1 : 0;
   const option_c_correct = correctOption === 'c' ? 1 : 0;
-  
+
   const suspicion_penalty = parseInt(document.getElementById('dlg-f-penalty')?.value) || 10;
   const context_notes = document.getElementById('dlg-f-notes')?.value?.trim() || '';
 
@@ -462,7 +329,8 @@ async function submitNewDialogue() {
 
     showT('Dialogue line created successfully', 'success');
     document.getElementById('dlg-new-form')?.remove();
-    await refreshDialogueList(currentEditQuest.id);
+
+await refreshDialogueList(currentEditQuest.id);
   } catch (err) {
     console.error('Failed to create dialogue:', err);
     showT('Failed to create dialogue line', 'error');
@@ -543,13 +411,13 @@ async function submitEditDialogue(dialogueId) {
   const option_a_text = document.getElementById('dlg-e-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-e-optb')?.value?.trim();
   const option_c_text = document.getElementById('dlg-e-optc')?.value?.trim() || null;
-  
+
   // Radio button logic: only one correct answer
   const correctOption = document.querySelector('input[name="dlg-e-correct"]:checked')?.value;
   const option_a_correct = correctOption === 'a' ? 1 : 0;
   const option_b_correct = correctOption === 'b' ? 1 : 0;
   const option_c_correct = correctOption === 'c' ? 1 : 0;
-  
+
   const suspicion_penalty = parseInt(document.getElementById('dlg-e-penalty')?.value) || 10;
   const context_notes = document.getElementById('dlg-e-notes')?.value?.trim() || '';
 
@@ -558,7 +426,8 @@ async function submitEditDialogue(dialogueId) {
       method: 'PUT',
       body: JSON.stringify({
         npc_name, npc_text, option_a_text, option_b_text, option_c_text,
-        option_a_correct, option_b_correct, option_c_correct, suspicion_penalty, context_notes
+
+option_a_correct, option_b_correct, option_c_correct, suspicion_penalty, context_notes
       })
     });
 
@@ -585,15 +454,15 @@ async function deleteDialogue(dialogueId) {
 async function saveArtifactPath(questId, inputId) {
   const input = document.getElementById(inputId);
   if (!input) return;
-  
+
   const artifact_resource_path = input.value.trim();
-  
+
   try {
     await apiCall(`/quests/${questId}`, {
       method: 'PUT',
       body: JSON.stringify({ artifact_resource_path })
     });
-    
+
     // Update local state
     const qObj = allQuests.find(q => q.id === questId);
     if(qObj) qObj.artifact_resource_path = artifact_resource_path;
