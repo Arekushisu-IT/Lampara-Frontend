@@ -4,11 +4,10 @@
 
 const ACCOUNTS = {};
 
-// Production backend is down, using local for now
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const API_CONFIG = {
-  baseUrl: 'http://localhost:8080/api',
+  baseUrl: isLocal ? 'http://localhost:8080/api' : 'https://lampara-production.up.railway.app/api',
 };
 
 const ROLE_META = {
