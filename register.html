@@ -79,6 +79,9 @@
 
     .username-wrap { position: relative; }
     .username-status { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; }
+    .pw-wrap { position: relative; }
+    .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--td); cursor: pointer; font-size: 11px; padding: 4px; transition: color .2s; }
+    .pw-toggle:hover { color: var(--goldl); }
 
     .btn { width: 100%; padding: 13px; margin-top: 6px; background: linear-gradient(135deg, rgba(201,149,58,.22), rgba(201,149,58,.08)); border: 1px solid var(--goldd); border-radius: 5px; font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; letter-spacing: 4px; color: var(--goldl); cursor: pointer; transition: all .25s; position: relative; }
     .btn:hover { border-color: var(--gold); box-shadow: 0 0 22px rgba(201,149,58,.2); }
@@ -186,7 +189,12 @@
 
         <div class="field">
           <label>Password</label>
-          <input type="password" id="r-password" placeholder="8-12 characters" required>
+          <div class="pw-wrap">
+            <input type="password" id="r-password" placeholder="8-12 characters" required>
+            <button type="button" class="pw-toggle" data-target="r-password" tabindex="-1">
+              <span class="toggle-icon">👁</span>
+            </button>
+          </div>
           <ul class="req-list" id="pw-reqs">
             <li id="pw-len">8 – 12 characters</li>
             <li id="pw-upper">One uppercase letter</li>
@@ -198,7 +206,12 @@
 
         <div class="field">
           <label>Confirm Password</label>
-          <input type="password" id="r-confirm" placeholder="Re-enter your password" required>
+          <div class="pw-wrap">
+            <input type="password" id="r-confirm" placeholder="Re-enter your password" required>
+            <button type="button" class="pw-toggle" data-target="r-confirm" tabindex="-1">
+              <span class="toggle-icon">👁</span>
+            </button>
+          </div>
           <div class="field-hint" id="confirm-hint"></div>
         </div>
 
@@ -255,6 +268,21 @@
     document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
     document.getElementById('state-' + id).classList.add('active');
   }
+
+  // Password toggle
+  document.querySelectorAll('.pw-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      const icon = btn.querySelector('.toggle-icon');
+      if (target.type === 'password') {
+        target.type = 'text';
+        icon.textContent = '🙈';
+      } else {
+        target.type = 'password';
+        icon.textContent = '👁';
+      }
+    });
+  });
 
   // Password validation
   const pwInput = document.getElementById('r-password');
