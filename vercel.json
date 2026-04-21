@@ -1,6 +1,8 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     { "source": "/player", "destination": "/player-portal.html" },
+    { "source": "/player-portal", "destination": "/player-portal.html" },
     { "source": "/admin", "destination": "/admin-portal.html" },
     { "source": "/register", "destination": "/register.html" },
     { "source": "/verify", "destination": "/verify.html" }
