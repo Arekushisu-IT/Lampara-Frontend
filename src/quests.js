@@ -122,8 +122,29 @@ async function fetchAndRenderQuests() {
     // Render current chapter (default: Chapter 1)
     renderChapterQuests(currentChapter);
 
+    // Update dashboard stats with live quest counts
+    updateQuestStats(quests);
+
   } catch (err) {
     console.error('Failed to load quests:', err);
+  }
+}
+
+// Update quest statistics on the dashboard
+function updateQuestStats(quests) {
+  const activeQuests = quests.filter(q => q.status === 'active' || q.status === 'completed').length;
+  const totalQuests = quests.length;
+
+  // Update sidebar badge (Quest Management)
+  const sidebarBadge = document.getElementById('nb-qt');
+  if (sidebarBadge) {
+    sidebarBadge.textContent = totalQuests;
+  }
+
+  // Update chapters live stat card
+  const chaptersLiveEl = document.getElementById('stat-chapters-live');
+  if (chaptersLiveEl) {
+    chaptersLiveEl.innerHTML = `${activeQuests}<span style="font-size:12px;color:var(--td)">/${totalQuests}</span>`;
   }
 }
 
