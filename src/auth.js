@@ -106,7 +106,10 @@ function applyRoleToUI(user) {
   const avatarEl = document.getElementById('sbav');
   avatarEl.style.background = user.av;
   avatarEl.style.color = user.ac;
-  avatarEl.innerHTML = user.ini + '<div class="odot"></div>';
+  avatarEl.textContent = user.ini;
+  const dot = document.createElement('div');
+  dot.className = 'odot';
+  avatarEl.appendChild(dot);
 
   document.getElementById('nslogs').style.display = 'block';
 }
