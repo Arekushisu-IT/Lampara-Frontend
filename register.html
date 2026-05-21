@@ -228,7 +228,11 @@
       <div class="state-icon success">✓</div>
       <div class="state-title success">REGISTRATION SUCCESSFUL</div>
       <div class="state-desc">Your account has been created! Please check your email for a verification link to activate your account.</div>
-      <a href="/verify" class="state-btn">CHECK VERIFICATION STATUS</a>
+      <div id="verification-result" style="width:100%;margin-bottom:16px"></div>
+      <button class="state-btn" id="check-verify-btn" onclick="checkVerificationStatus()">CHECK VERIFICATION STATUS</button>
+      <div style="margin-top:12px">
+        <a href="/player-portal" class="state-btn" style="font-size:9px;opacity:.7;letter-spacing:2px">SIGN IN</a>
+      </div>
     </div>
 
     <!-- ERROR STATE -->
@@ -419,6 +423,69 @@
       showState('error');
     }
   });
+
+  // Store the registered username for status checking
+  let registeredUsername = null;
+
+  // Override form submit to capture username
+  const origForm = document.getElementById('reg-form');
+  origForm.addEventListener('submit', () => {
+    registeredUsername = document.getElementById('r-username').value.trim();
+  }, true);
+
+  async function checkVerificationStatus() {
+    const btn = document.getElementById('check-verify-btn');
+    const resultEl = document.getElementById('verification-result');
+    const uname = registeredUsername || document.getElementById('r-username')?.value?.trim();
+
+    if (!uname) {
+      resultEl.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:#e06060;padding:10px">Could not determine username. Please sign in instead.</div>';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'CHECKING...';
+    resultEl.innerHTML = '';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/check-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        resultEl.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#e06060;background:rgba(139,32,32,.1);border:1px solid rgba(139,32,32,.3);border-radius:6px;padding:12px">${data.error || 'Could not check status'}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'CHECK VERIFICATION STATUS';
+        return;
+      }
+
+      if (data.verified) {
+        resultEl.innerHTML = `
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(45,106,63,.1);border:1px solid rgba(45,106,63,.3);border-radius:6px;padding:14px;text-align:center">
+            <div style="color:#6dba85;font-size:14px;margin-bottom:6px">✓ VERIFIED</div>
+            <div style="color:#a89070">Welcome, <span style="color:#e8b84b">${data.name}</span>! Your account is active.</div>
+            <div style="margin-top:10px"><a href="/player-portal" style="color:#e8b84b;text-decoration:none;font-weight:700">→ SIGN IN NOW</a></div>
+          </div>`;
+        btn.style.display = 'none';
+      } else {
+        const statusLabel = data.status === 'pending' ? 'PENDING APPROVAL' : data.status === 'inactive' ? 'NOT YET VERIFIED' : data.status.toUpperCase();
+        resultEl.innerHTML = `
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(201,149,58,.08);border:1px solid rgba(201,149,58,.25);border-radius:6px;padding:14px;text-align:center">
+            <div style="color:#e8b84b;font-size:13px;margin-bottom:6px">⏳ ${statusLabel}</div>
+            <div style="color:#a89070">Please check your email for the verification link, or wait for admin approval.</div>
+          </div>`;
+        btn.disabled = false;
+        btn.textContent = 'CHECK AGAIN';
+      }
+    } catch {
+      resultEl.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:#e06060;padding:10px">Could not connect to server. Try again later.</div>';
+      btn.disabled = false;
+      btn.textContent = 'CHECK VERIFICATION STATUS';
+    }
+  }
 </script>
 </body>
 </html>

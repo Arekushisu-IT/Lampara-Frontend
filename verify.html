@@ -372,11 +372,24 @@
     </div>
 
     <!-- STATE: No Token -->
+    <!-- STATE: No Token — show lookup form instead of error -->
     <div class="state" id="state-notoken">
-      <div class="state-icon error">⚠</div>
-      <div class="state-title error">INVALID LINK</div>
-      <div class="state-desc">This verification link is missing a token. Please use the link sent to your registered email address.</div>
-      <a href="mailto:admin@lampara.edu.ph" class="btn danger">CONTACT ADMINISTRATOR</a>
+      <div class="state-icon already">◈</div>
+      <div class="state-title already">CHECK VERIFICATION STATUS</div>
+      <div class="state-desc">Enter your username or email to check if your account has been verified.</div>
+      <div style="width:100%;max-width:320px;margin-bottom:16px">
+        <div style="margin-bottom:10px">
+          <label style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:#6b5740;display:block;margin-bottom:5px">USERNAME OR EMAIL</label>
+          <input type="text" id="lookup-input" placeholder="Enter your username or email"
+            style="width:100%;background:#16120b;border:1px solid #2e2218;border-radius:5px;padding:11px 12px;color:#e8dcc8;font-family:'Crimson Text',serif;font-size:14px;outline:none;transition:border-color .3s"
+            onfocus="this.style.borderColor='#c9953a'" onblur="this.style.borderColor='#2e2218'">
+        </div>
+        <div id="lookup-result" style="margin-bottom:12px"></div>
+        <button class="btn" id="lookup-btn" onclick="lookupVerification()" style="width:100%">⚜ CHECK STATUS</button>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#6b5740;margin-top:8px">
+        Or use the verification link sent to your email.
+      </div>
     </div>
 
     <!-- STATE: Success -->
@@ -600,6 +613,72 @@
 
     // Small delay so the loading animation plays
     setTimeout(() => verifyToken(token), 1200);
+  });
+
+  /* ═══════════════════════════════════════
+     LOOKUP VERIFICATION BY USERNAME/EMAIL
+  ═══════════════════════════════════════ */
+  async function lookupVerification() {
+    const input = document.getElementById('lookup-input');
+    const resultEl = document.getElementById('lookup-result');
+    const btn = document.getElementById('lookup-btn');
+    const val = input.value.trim();
+
+    if (!val) {
+      resultEl.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:#e06060;padding:8px">Please enter your username or email.</div>';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'CHECKING...';
+    resultEl.innerHTML = '';
+
+    try {
+      const isEmail = val.includes('@');
+      const body = isEmail ? { email: val } : { username: val };
+
+      const res = await fetch(`${API_BASE}/auth/check-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        resultEl.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#e06060;background:rgba(139,32,32,.1);border:1px solid rgba(139,32,32,.3);border-radius:6px;padding:12px">${data.error || 'Could not check status'}</div>`;
+        btn.disabled = false;
+        btn.textContent = '⚜ CHECK STATUS';
+        return;
+      }
+
+      if (data.verified) {
+        resultEl.innerHTML = `
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(45,106,63,.1);border:1px solid rgba(45,106,63,.3);border-radius:6px;padding:14px;text-align:center">
+            <div style="color:#6dba85;font-size:14px;margin-bottom:6px">✓ VERIFIED</div>
+            <div style="color:#a89070">Welcome, <span style="color:#e8b84b">${data.name}</span>! Your account is active.</div>
+            <div style="margin-top:10px"><a href="/player-portal" style="color:#e8b84b;text-decoration:none;font-weight:700">→ SIGN IN NOW</a></div>
+          </div>`;
+        btn.style.display = 'none';
+      } else {
+        const statusLabel = data.status === 'pending' ? 'PENDING APPROVAL' : data.status === 'inactive' ? 'NOT YET VERIFIED' : data.status.toUpperCase();
+        resultEl.innerHTML = `
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(201,149,58,.08);border:1px solid rgba(201,149,58,.25);border-radius:6px;padding:14px;text-align:center">
+            <div style="color:#e8b84b;font-size:13px;margin-bottom:6px">⏳ ${statusLabel}</div>
+            <div style="color:#a89070">Please check your email for the verification link, or wait for admin approval.</div>
+          </div>`;
+        btn.disabled = false;
+        btn.textContent = 'CHECK AGAIN';
+      }
+    } catch {
+      resultEl.innerHTML = '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:#e06060;padding:10px">Could not connect to server. Try again later.</div>';
+      btn.disabled = false;
+      btn.textContent = '⚜ CHECK STATUS';
+    }
+  }
+
+  // Enter key on lookup input
+  document.getElementById('lookup-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') lookupVerification();
   });
 </script>
 </body>
