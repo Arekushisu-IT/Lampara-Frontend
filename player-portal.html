@@ -250,6 +250,17 @@
       text-decoration: underline;
     }
 
+    /* Nav Tabs */
+    .nav-tab {
+      background: none; border: none; font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 2px; color: var(--td); cursor: pointer;
+      padding: 6px 14px; border-radius: 4px; transition: all .2s;
+    }
+    .nav-tab:hover { color: var(--goldl); background: rgba(201,149,58,.08); }
+    .nav-tab.active { color: var(--goldl); background: rgba(201,149,58,.15); border: 1px solid rgba(201,149,58,.2); }
+
+    @keyframes stateIn { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+
     /* PORTAL LAYOUT */
     .portal-header {
       padding: 16px 24px;
@@ -1040,6 +1051,24 @@
         </div>
         <div class="login-err" id="pl-err"></div>
         <button class="btn-primary" id="pl-login-btn" onclick="playerLogin()">⚜ SIGN IN</button>
+        <div style="text-align:center;margin-top:12px">
+          <a href="#" onclick="showForgotPassword();return false" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--goldd);text-decoration:none;letter-spacing:1px;transition:color .2s" onmouseover="this.style.color='#e8b84b'" onmouseout="this.style.color='#7a5820'">Forgot your password?</a>
+        </div>
+      </div>
+
+      <!-- FORGOT PASSWORD CARD (hidden by default) -->
+      <div class="lcard" id="forgot-card" style="display:none">
+        <div class="lcard-title">RESET YOUR PASSWORD</div>
+        <div class="field">
+          <label>EMAIL ADDRESS</label>
+          <input type="email" id="forgot-email" placeholder="Enter your registered email">
+        </div>
+        <div class="login-err" id="forgot-err"></div>
+        <div id="forgot-success" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#6dba85;text-align:center;margin-bottom:10px;display:none"></div>
+        <button class="btn-primary" id="forgot-btn" onclick="submitForgotPassword()">⚜ SEND RESET LINK</button>
+        <div style="text-align:center;margin-top:12px">
+          <a href="#" onclick="hideForgotPassword();return false" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--goldd);text-decoration:none;letter-spacing:1px">← Back to Sign In</a>
+        </div>
       </div>
 
       <div class="login-foot">
@@ -1050,47 +1079,138 @@
 
   <!-- PORTAL VIEW -->
   <div id="portal-view">
+    <!-- NAV BAR -->
     <div class="portal-header">
       <div class="portal-brand">⚜ LAMPARA</div>
-      <button class="mobile-menu-btn" id="user-toggle" onclick="toggleUserDetails()" aria-label="Toggle user details">
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-        </svg>
-      </button>
-      <div class="portal-user">
-        <div class="portal-avatar" id="p-avatar">—</div>
-        <div class="user-details" id="user-details">
-          <div class="portal-name" id="p-name">Player</div>
-          <div class="portal-codex" id="p-codex">Codex: —</div>
+      <div style="display:flex;gap:4px">
+        <button class="nav-tab active" id="tab-home" onclick="switchTab('home')">HOME</button>
+        <button class="nav-tab" id="tab-leaderboard" onclick="switchTab('leaderboard')">LEADERBOARD</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-left:auto">
+        <!-- Notification Bell -->
+        <div style="position:relative;cursor:pointer" id="notif-bell" onclick="toggleNotifications()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div id="notif-badge" style="display:none;position:absolute;top:-4px;right:-6px;background:#e06060;color:#fff;font-size:8px;font-family:'JetBrains Mono',monospace;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;font-weight:700">0</div>
+        </div>
+        <!-- Avatar Dropdown -->
+        <div style="position:relative" id="avatar-wrap">
+          <div class="portal-avatar" id="p-avatar" onclick="toggleAvatarMenu()" style="cursor:pointer">—</div>
+          <div id="avatar-dropdown" style="display:none;position:absolute;right:0;top:42px;width:220px;background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.7);z-index:200;overflow:hidden;animation:stateIn .2s ease">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--bdr)">
+              <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--ts)">MY INFORMATION</div>
+            </div>
+            <a href="#" onclick="openProfileDrawer();return false" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--tp);text-decoration:none;font-size:12px;transition:background .2s" onmouseover="this.style.background='var(--bgh)'" onmouseout="this.style.background='transparent'">📋 Personal Homepage</a>
+            <a href="#" onclick="switchTab('home');closeAvatarMenu();return false" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:var(--tp);text-decoration:none;font-size:12px;transition:background .2s" onmouseover="this.style.background='var(--bgh)'" onmouseout="this.style.background='transparent'">⚙ Account Settings</a>
+            <div style="border-top:1px solid var(--bdr);padding:4px 0">
+              <a href="#" onclick="portalLogout();return false" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#e06060;text-decoration:none;font-size:12px;transition:background .2s" onmouseover="this.style.background='var(--bgh)'" onmouseout="this.style.background='transparent'">🚪 Log out</a>
+            </div>
+          </div>
         </div>
       </div>
-      <button class="portal-logout" onclick="portalLogout()">SIGN OUT</button>
     </div>
 
-    <div class="portal-content">
-      <div class="profile-card">
-        <div class="profile-avatar" id="p-big-avatar">—</div>
-        <div class="profile-info">
-          <h2 id="p-full-name">Player Name</h2>
-          <div class="profile-meta" id="p-meta">@username · email@example.com</div>
+    <!-- NOTIFICATION DROPDOWN -->
+    <div id="notif-dropdown" style="display:none;position:fixed;right:60px;top:52px;width:340px;max-height:400px;background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.7);z-index:200;overflow:hidden;animation:stateIn .2s ease">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--ts)">NOTIFICATIONS</span>
+        <button onclick="markAllRead()" style="background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--goldd);cursor:pointer;letter-spacing:1px">MARK ALL READ</button>
+      </div>
+      <div id="notif-list" style="overflow-y:auto;max-height:340px;padding:4px 0">
+        <div style="padding:20px;text-align:center;color:var(--td);font-size:12px">No notifications yet</div>
+      </div>
+    </div>
+
+    <!-- PROFILE DRAWER (slide-in from right) -->
+    <div id="profile-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300" onclick="closeProfileDrawer()"></div>
+    <div id="profile-drawer" style="display:none;position:fixed;top:0;right:-400px;width:380px;max-width:90vw;height:100vh;background:var(--bgp);border-left:1px solid var(--bdrg);z-index:301;overflow-y:auto;transition:right .3s ease;box-shadow:-8px 0 40px rgba(0,0,0,.6)">
+      <div style="padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <span style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;color:var(--ts)">PERSONAL HOMEPAGE</span>
+          <button onclick="closeProfileDrawer()" style="background:none;border:none;color:var(--td);font-size:18px;cursor:pointer">✕</button>
         </div>
-        <div class="profile-stats">
-          <div class="profile-stat">
-            <div class="profile-stat-val" id="p-progress">0%</div>
-            <div class="profile-stat-lbl">Progress</div>
+        <!-- Profile Banner -->
+        <div style="text-align:center;margin-bottom:20px">
+          <div class="profile-avatar" id="p-drawer-avatar" style="width:64px;height:64px;font-size:20px;margin:0 auto 10px">—</div>
+          <h2 id="p-drawer-name" style="font-family:'Cinzel',serif;font-size:16px;color:var(--tp);margin-bottom:4px">Player</h2>
+          <div id="p-drawer-meta" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--td);letter-spacing:1px">@username</div>
+        </div>
+        <!-- Stats -->
+        <div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px">
+          <div style="text-align:center"><div id="p-drawer-chapter" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">1</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">CHAPTER</div></div>
+          <div style="text-align:center"><div id="p-drawer-progress" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">0%</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">PROGRESS</div></div>
+          <div style="text-align:center"><div id="p-drawer-level" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">1</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">LEVEL</div></div>
+        </div>
+        <!-- Quest Progression -->
+        <div class="section-title">QUEST CHRONICLE</div>
+        <div id="drawer-progression">
+          <div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Loading...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="portal-content">
+      <!-- HOME TAB -->
+      <div id="view-home" style="display:flex;gap:20px;align-items:flex-start">
+        <!-- Feed Column -->
+        <div style="flex:1;min-width:0">
+          <!-- Post Creation -->
+          <div style="background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;padding:16px;margin-bottom:16px;position:relative;overflow:hidden">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.3"></div>
+            <textarea id="post-input" placeholder="Share your journey, traveler..." style="width:100%;background:var(--bgc);border:1px solid var(--bdr);border-radius:5px;padding:11px 12px;color:var(--tp);font-family:'Crimson Text',serif;font-size:14px;outline:none;resize:vertical;min-height:70px;transition:border-color .3s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--bdr)'"></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+              <span id="post-charcount" style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--td)">0/1000</span>
+              <button class="btn-primary" style="width:auto;padding:8px 20px;font-size:9px;letter-spacing:3px" onclick="createPost()">⚜ POST</button>
+            </div>
           </div>
-          <div class="profile-stat">
-            <div class="profile-stat-val" id="p-chapter">1</div>
-            <div class="profile-stat-lbl">Chapter</div>
+          <!-- Feed -->
+          <div id="feed-container">
+            <div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Loading feed...</div></div>
+          </div>
+          <div id="load-more-wrap" style="text-align:center;margin-top:16px;display:none">
+            <button class="btn-primary" style="width:auto;padding:8px 24px;font-size:9px" onclick="loadFeed(true)">LOAD MORE</button>
+          </div>
+        </div>
+        <!-- Sidebar -->
+        <div style="width:260px;flex-shrink:0" id="sidebar">
+          <!-- My Stats Card -->
+          <div style="background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.3"></div>
+            <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;color:var(--ts);margin-bottom:12px">MY STATS</div>
+            <div style="display:flex;gap:8px;text-align:center">
+              <div style="flex:1"><div id="p-chapter" style="font-family:'Cinzel',serif;font-size:20px;color:var(--goldl)">1</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1px">CHAPTER</div></div>
+              <div style="flex:1"><div id="p-progress" style="font-family:'Cinzel',serif;font-size:20px;color:var(--goldl)">0%</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1px">PROGRESS</div></div>
+            </div>
+          </div>
+          <!-- Top Players -->
+          <div style="background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;padding:16px;position:relative;overflow:hidden">
+            <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.3"></div>
+            <div style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:2px;color:var(--ts);margin-bottom:12px">TOP PLAYERS</div>
+            <div id="sidebar-top5">
+              <div style="font-size:11px;color:var(--td);text-align:center;padding:10px">Loading...</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="section-title">QUEST PROGRESSION</div>
-      <div id="progression-container">
-        <div class="empty-state">
-          <div class="empty-state-icon">📜</div>
-          <div class="empty-state-text">Loading progression...</div>
+      <!-- LEADERBOARD TAB -->
+      <div id="view-leaderboard" style="display:none">
+        <div class="section-title">ARCHIVE RANKINGS</div>
+        <div style="background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;overflow:hidden;position:relative">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.3"></div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--td);text-transform:uppercase">
+                <th style="padding:12px 16px;text-align:left">Rank</th>
+                <th style="padding:12px 16px;text-align:left">Player</th>
+                <th style="padding:12px 16px;text-align:center">Chapter</th>
+                <th style="padding:12px 16px;text-align:center">Progress</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+              <tr><td colspan="4" style="padding:30px;text-align:center;color:var(--td);font-size:12px">Loading rankings...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1102,36 +1222,37 @@
     const API_BASE = 'https://lampara-production.up.railway.app/api';
     let playerToken = localStorage.getItem('lampara_player_token');
     let playerData = null;
-    let userMenuOpen = false;
+    let feedOffset = 0;
 
-    // Check if already logged in
-    if (playerToken) {
-      checkSession();
+    // Utility helpers
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      const d = Math.floor(h / 24);
+      return d + 'd ago';
+    }
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s || '';
+      return d.innerHTML;
     }
 
-    // Toggle user details on mobile
-    function toggleUserDetails() {
-      userMenuOpen = !userMenuOpen;
-      const details = document.getElementById('user-details');
-      if (details) {
-        details.classList.toggle('mobile-show');
-      }
-    }
-
-    // Close user menu when clicking outside on mobile
-    document.addEventListener('click', function(e) {
-      if (userMenuOpen && !e.target.closest('.portal-user') && !e.target.closest('.mobile-menu-btn')) {
-        const details = document.getElementById('user-details');
-        if (details) {
-          details.classList.remove('mobile-show');
-        }
-        userMenuOpen = false;
-      }
-    });
+    // Auto-login check
+    if (playerToken) checkSession();
 
     // Enter key on password field
     document.getElementById('pl-pass')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') playerLogin();
+    });
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#avatar-wrap')) document.getElementById('avatar-dropdown').style.display = 'none';
+      if (!e.target.closest('#notif-bell') && !e.target.closest('#notif-dropdown')) document.getElementById('notif-dropdown').style.display = 'none';
     });
 
     async function playerLogin() {
@@ -1139,46 +1260,79 @@
       const password = document.getElementById('pl-pass').value;
       const errEl = document.getElementById('pl-err');
       errEl.textContent = '';
-
       if (!username || !password) { errEl.textContent = 'Username and password required'; return; }
-
       const btn = document.getElementById('pl-login-btn');
       btn.disabled = true;
-
       try {
         const res = await fetch(`${API_BASE}/auth/player-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
-
         if (!res.ok) { errEl.textContent = data.error || 'Login failed'; btn.disabled = false; return; }
-
         playerToken = data.token;
         playerData = data.player;
         localStorage.setItem('lampara_player_token', playerToken);
-
         showPortal();
-      } catch {
-        errEl.textContent = 'Could not connect to server';
-        btn.disabled = false;
-      }
+      } catch { errEl.textContent = 'Could not connect to server'; btn.disabled = false; }
     }
 
     async function checkSession() {
       try {
-        const res = await fetch(`${API_BASE}/auth/me`, {
-          headers: { 'Authorization': `Bearer ${playerToken}` }
-        });
+        const res = await fetch(`${API_BASE}/auth/me`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
         if (!res.ok) throw new Error();
         const data = await res.json();
         playerData = data.user;
         showPortal();
-      } catch {
-        localStorage.removeItem('lampara_player_token');
-        playerToken = null;
-      }
+      } catch { localStorage.removeItem('lampara_player_token'); playerToken = null; }
+    }
+
+    async function loadProgression() {
+      try {
+        const res = await fetch(`${API_BASE}/players/${playerData.id}/progression`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('p-progress').textContent = data.overall_progress + '%';
+      } catch {}
+    }
+
+    async function loadDrawerProgression() {
+      const container = document.getElementById('drawer-progression');
+      try {
+        const res = await fetch(`${API_BASE}/players/${playerData.id}/progression`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">No quest data yet</div></div>'; return; }
+        const data = await res.json();
+        document.getElementById('p-drawer-progress').textContent = data.overall_progress + '%';
+        if (!data.chapters || data.chapters.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Your journey has not started yet</div></div>'; return; }
+        container.innerHTML = '';
+        data.chapters.forEach(ch => {
+          const totalSubs = ch.quests.reduce((s, q) => s + q.total_count, 0);
+          const doneCount = ch.quests.reduce((s, q) => s + q.completed_count, 0);
+          const pct = totalSubs > 0 ? Math.round((doneCount / totalSubs) * 100) : 0;
+          const card = document.createElement('div');
+          card.className = 'chapter-card';
+          card.innerHTML = `
+            <div class="chapter-header" onclick="this.nextElementSibling.classList.toggle('open')">
+              <div class="chapter-num">CHAPTER ${ch.chapter}</div>
+              <div class="chapter-bar"><div class="chapter-fill" style="width:${pct}%"></div></div>
+              <div class="chapter-pct">${pct}%</div>
+            </div>
+            <div class="chapter-body">
+              ${ch.quests.map(q => `
+                <div style="margin-bottom:8px">
+                  <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;color:var(--gold);margin-bottom:4px">QUEST ${q.quest} — ${q.completion}%</div>
+                  ${q.sub_quests.map(sq => `
+                    <div class="quest-row">
+                      <span class="quest-check ${sq.status === 'completed' ? 'done' : 'not'}">${sq.status === 'completed' ? '✓' : '○'}</span>
+                      <span class="quest-label">${sq.title}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              `).join('')}
+            </div>`;
+          container.appendChild(card);
+        });
+      } catch { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text">Failed to load progression</div></div>'; }
     }
 
     function showPortal() {
@@ -1187,72 +1341,268 @@
 
       const p = playerData;
       const initials = p.name ? p.name.substring(0, 2).toUpperCase() : '??';
-      const codex = `${p.chapter || 1}-${p.current_main_quest || 1}`;
 
       document.getElementById('p-avatar').textContent = initials;
-      document.getElementById('p-big-avatar').textContent = initials;
-      document.getElementById('p-name').textContent = p.name;
-      document.getElementById('p-full-name').textContent = p.name;
-      document.getElementById('p-meta').textContent = `@${p.username} · ${p.email || '—'}`;
-      document.getElementById('p-codex').textContent = `Codex: ${codex}`;
       document.getElementById('p-chapter').textContent = p.chapter || 1;
 
+      loadFeed();
+      loadSidebarTop5();
+      loadNotifCount();
       loadProgression();
     }
 
-    async function loadProgression() {
-      const container = document.getElementById('progression-container');
+    // ==========================================
+    // TAB SWITCHING
+    // ==========================================
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('view-home').style.display = tab === 'home' ? 'flex' : 'none';
+      document.getElementById('view-leaderboard').style.display = tab === 'leaderboard' ? 'block' : 'none';
+      if (tab === 'leaderboard') loadLeaderboard();
+      closeAvatarMenu();
+    }
+
+    // ==========================================
+    // AVATAR DROPDOWN
+    // ==========================================
+    function toggleAvatarMenu() {
+      const dd = document.getElementById('avatar-dropdown');
+      dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+    }
+    function closeAvatarMenu() {
+      document.getElementById('avatar-dropdown').style.display = 'none';
+    }
+
+    // ==========================================
+    // PROFILE DRAWER
+    // ==========================================
+    function openProfileDrawer() {
+      closeAvatarMenu();
+      const p = playerData;
+      const initials = p.name ? p.name.substring(0, 2).toUpperCase() : '??';
+      document.getElementById('p-drawer-avatar').textContent = initials;
+      document.getElementById('p-drawer-name').textContent = p.name || 'Player';
+      document.getElementById('p-drawer-meta').textContent = `@${p.username || '—'} · ${p.email || '—'}`;
+      document.getElementById('p-drawer-chapter').textContent = p.chapter || 1;
+      document.getElementById('p-drawer-level').textContent = p.level || 1;
+
+      document.getElementById('profile-overlay').style.display = 'block';
+      const drawer = document.getElementById('profile-drawer');
+      drawer.style.display = 'block';
+      setTimeout(() => { drawer.style.right = '0'; }, 10);
+
+      loadDrawerProgression();
+    }
+    function closeProfileDrawer() {
+      const drawer = document.getElementById('profile-drawer');
+      drawer.style.right = '-400px';
+      setTimeout(() => {
+        drawer.style.display = 'none';
+        document.getElementById('profile-overlay').style.display = 'none';
+      }, 300);
+    }
+
+    // ==========================================
+    // NOTIFICATIONS
+    // ==========================================
+    function toggleNotifications() {
+      const dd = document.getElementById('notif-dropdown');
+      if (dd.style.display === 'none') { dd.style.display = 'block'; loadNotifications(); }
+      else dd.style.display = 'none';
+    }
+    async function loadNotifCount() {
       try {
-        const res = await fetch(`${API_BASE}/players/${playerData.id}/progression`, {
-          headers: { 'Authorization': `Bearer ${playerToken}` }
-        });
-
-        if (!res.ok) {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">No quest data available yet</div></div>';
-          return;
-        }
-
+        const res = await fetch(`${API_BASE}/notifications/unread-count`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
         const data = await res.json();
-        document.getElementById('p-progress').textContent = data.overall_progress + '%';
-
-        if (!data.chapters || data.chapters.length === 0) {
-          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Your journey has not started yet</div></div>';
+        const badge = document.getElementById('notif-badge');
+        if (data.count > 0) {
+          badge.textContent = data.count > 99 ? '99+' : data.count;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      } catch {}
+    }
+    async function loadNotifications() {
+      try {
+        const res = await fetch(`${API_BASE}/notifications?limit=20`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = document.getElementById('notif-list');
+        if (!data.notifications || data.notifications.length === 0) {
+          list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--td);font-size:12px">No notifications yet</div>';
           return;
         }
+        list.innerHTML = data.notifications.map(n => {
+          const icons = { like: '❤️', comment: '💬', verified: '✓', system: '📢' };
+          const ago = timeAgo(n.created_at);
+          return `<div style="padding:10px 16px;border-bottom:1px solid var(--bdr);${n.is_read ? 'opacity:.6' : ''};display:flex;gap:10px;align-items:flex-start;cursor:pointer" onclick="markRead(${n.id},this)">
+            <span style="font-size:14px">${icons[n.type] || '🔔'}</span>
+            <div><div style="font-size:12px;color:var(--tp);line-height:1.4">${escHtml(n.message)}</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--td);margin-top:3px">${ago}</div></div>
+          </div>`;
+        }).join('');
+      } catch {}
+    }
+    async function markRead(id, el) {
+      if (el) el.style.opacity = '.6';
+      try { await fetch(`${API_BASE}/notifications/${id}/read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${playerToken}` } }); loadNotifCount(); } catch {}
+    }
+    async function markAllRead() {
+      try { await fetch(`${API_BASE}/notifications/read-all`, { method: 'PUT', headers: { 'Authorization': `Bearer ${playerToken}` } }); loadNotifCount(); loadNotifications(); } catch {}
+    }
 
-        container.innerHTML = '';
-        data.chapters.forEach(ch => {
-          const totalSubs = ch.quests.reduce((sum, q) => sum + q.total_count, 0);
-          const completedSubs = ch.quests.reduce((sum, q) => sum + q.completed_count, 0);
-          const pct = totalSubs > 0 ? Math.round((completedSubs / totalSubs) * 100) : 0;
-
-          const card = document.createElement('div');
-          card.className = 'chapter-card';
-          card.innerHTML = `
-          <div class="chapter-header" onclick="this.nextElementSibling.classList.toggle('open')">
-            <div class="chapter-num">CHAPTER ${ch.chapter}</div>
-            <div class="chapter-bar"><div class="chapter-fill" style="width:${pct}%"></div></div>
-            <div class="chapter-pct">${pct}%</div>
-          </div>
-          <div class="chapter-body">
-            ${ch.quests.map(q => `
-              <div style="margin-bottom:8px">
-                <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;color:var(--gold);margin-bottom:4px">QUEST ${q.quest} — ${q.completion}%</div>
-                ${q.sub_quests.map(sq => `
-                  <div class="quest-row">
-                    <span class="quest-check ${sq.status === 'completed' ? 'done' : 'not'}">${sq.status === 'completed' ? '✓' : '○'}</span>
-                    <span class="quest-label">${sq.title}</span>
-                  </div>
-                `).join('')}
-              </div>
-            `).join('')}
-          </div>
-        `;
-          container.appendChild(card);
+    // ==========================================
+    // COMMUNITY FEED
+    // ==========================================
+    document.getElementById('post-input')?.addEventListener('input', function() {
+      document.getElementById('post-charcount').textContent = this.value.length + '/1000';
+    });
+    async function createPost() {
+      const input = document.getElementById('post-input');
+      const content = input.value.trim();
+      if (!content) return;
+      if (content.length > 1000) { alert('Post must be under 1000 characters'); return; }
+      try {
+        const res = await fetch(`${API_BASE}/community/posts`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${playerToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
         });
-      } catch {
-        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text">Failed to load progression data</div></div>';
-      }
+        if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed'); return; }
+        input.value = '';
+        document.getElementById('post-charcount').textContent = '0/1000';
+        feedOffset = 0;
+        loadFeed();
+      } catch { alert('Could not connect to server'); }
+    }
+    async function loadFeed(more) {
+      if (more) feedOffset += 20; else feedOffset = 0;
+      try {
+        const res = await fetch(`${API_BASE}/community/feed?limit=20&offset=${feedOffset}`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const container = document.getElementById('feed-container');
+        if (!more) container.innerHTML = '';
+        if (data.posts.length === 0 && feedOffset === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-text">No posts yet. Be the first!</div></div>';
+        }
+        data.posts.forEach(p => container.appendChild(buildPostCard(p)));
+        document.getElementById('load-more-wrap').style.display = feedOffset + 20 < data.pagination.total ? 'block' : 'none';
+      } catch {}
+    }
+    function buildPostCard(p) {
+      const initials = p.author_name ? p.author_name.substring(0, 2).toUpperCase() : '??';
+      const ago = timeAgo(p.created_at);
+      const div = document.createElement('div');
+      div.style.cssText = 'background:var(--bgp);border:1px solid var(--bdrg);border-radius:8px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden';
+      div.innerHTML = `
+        <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--bdrg),transparent)"></div>
+        <div style="display:flex;gap:10px;margin-bottom:10px">
+          <div class="portal-avatar" style="width:36px;height:36px;font-size:11px;flex-shrink:0">${initials}</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--tp)">${escHtml(p.author_name)}</div><div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--td)">@${escHtml(p.author_username)} · ${ago}</div></div>
+        </div>
+        <div style="font-size:14px;color:var(--tp);line-height:1.7;margin-bottom:12px;word-break:break-word">${escHtml(p.content)}</div>
+        <div style="display:flex;gap:16px;align-items:center">
+          <button onclick="toggleLike(${p.id},this)" style="background:none;border:none;cursor:pointer;font-size:12px;color:${p.liked_by_me ? '#e06060' : 'var(--td)'};display:flex;align-items:center;gap:4px;transition:color .2s">
+            ${p.liked_by_me ? '❤️' : '🤍'} <span style="font-family:'JetBrains Mono',monospace;font-size:10px">${p.likes_count}</span>
+          </button>
+          <button onclick="toggleComments(${p.id},this)" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--td);display:flex;align-items:center;gap:4px;transition:color .2s">
+            💬 <span style="font-family:'JetBrains Mono',monospace;font-size:10px">${p.comments_count}</span>
+          </button>
+          ${Number(p.author_id) === Number(playerData.id) ? `<button onclick="deletePost(${p.id},this)" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--td);margin-left:auto;font-family:'JetBrains Mono',monospace;opacity:.5" title="Delete post">🗑</button>` : ''}
+        </div>
+        <div id="comments-${p.id}" style="display:none;margin-top:12px;border-top:1px solid var(--bdr);padding-top:12px"></div>
+      `;
+      return div;
+    }
+    async function toggleLike(postId, btn) {
+      try {
+        const res = await fetch(`${API_BASE}/community/posts/${postId}/like`, { method: 'POST', headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        btn.innerHTML = `${data.liked ? '❤️' : '🤍'} <span style="font-family:'JetBrains Mono',monospace;font-size:10px">${data.likes_count}</span>`;
+        btn.style.color = data.liked ? '#e06060' : 'var(--td)';
+      } catch {}
+    }
+    async function toggleComments(postId, btn) {
+      const wrap = document.getElementById('comments-' + postId);
+      if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      wrap.innerHTML = '<div style="font-size:11px;color:var(--td);padding:8px 0">Loading...</div>';
+      try {
+        const res = await fetch(`${API_BASE}/community/posts/${postId}/comments`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        let html = data.comments.map(c => `
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div class="portal-avatar" style="width:24px;height:24px;font-size:8px;flex-shrink:0">${c.author_name ? c.author_name.substring(0,2).toUpperCase() : '??'}</div>
+            <div><div style="font-size:11px"><span style="font-weight:600;color:var(--tp)">${escHtml(c.author_name)}</span> <span style="color:var(--td);font-family:'JetBrains Mono',monospace;font-size:8px">${timeAgo(c.created_at)}</span></div><div style="font-size:12px;color:var(--ts);line-height:1.5">${escHtml(c.content)}</div></div>
+          </div>
+        `).join('');
+        html += `<div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="cmt-${postId}" placeholder="Write a comment..." style="flex:1;background:var(--bgc);border:1px solid var(--bdr);border-radius:4px;padding:7px 10px;color:var(--tp);font-family:'Crimson Text',serif;font-size:12px;outline:none"><button onclick="addComment(${postId})" style="background:none;border:1px solid var(--goldd);border-radius:4px;padding:7px 12px;color:var(--goldl);font-size:10px;cursor:pointer;font-family:'Cinzel',serif">POST</button></div>`;
+        wrap.innerHTML = html;
+      } catch {}
+    }
+    async function addComment(postId) {
+      const input = document.getElementById('cmt-' + postId);
+      if (!input || !input.value.trim()) return;
+      try {
+        const res = await fetch(`${API_BASE}/community/posts/${postId}/comments`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${playerToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: input.value.trim() })
+        });
+        if (res.ok) { toggleComments(postId); toggleComments(postId); }
+      } catch {}
+    }
+    async function deletePost(postId, btn) {
+      if (!confirm('Delete this post?')) return;
+      try {
+        await fetch(`${API_BASE}/community/posts/${postId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${playerToken}` } });
+        feedOffset = 0; loadFeed();
+      } catch {}
+    }
+
+    // ==========================================
+    // SIDEBAR TOP 5
+    // ==========================================
+    async function loadSidebarTop5() {
+      try {
+        const res = await fetch(`${API_BASE}/leaderboard/rankings?limit=5`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const el = document.getElementById('sidebar-top5');
+        if (!data.rankings || data.rankings.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--td);font-size:11px">No data</div>'; return; }
+        el.innerHTML = data.rankings.map((r, i) => `
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;${i < data.rankings.length-1 ? 'border-bottom:1px solid var(--bdr)' : ''}">
+            <span style="font-family:'Cinzel',serif;font-size:12px;color:${i===0?'#e8b84b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--td)'};min-width:20px">${i+1}</span>
+            <span style="font-size:12px;color:var(--tp);flex:1">${escHtml(r.name || r.username || 'Player')}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ts)">Ch.${r.chapter || 1}</span>
+          </div>
+        `).join('');
+      } catch {}
+    }
+
+    // ==========================================
+    // LEADERBOARD
+    // ==========================================
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch(`${API_BASE}/leaderboard/rankings?limit=100`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.getElementById('leaderboard-body');
+        if (!data.rankings || data.rankings.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--td);font-size:12px">No rankings yet</td></tr>'; return; }
+        tbody.innerHTML = data.rankings.map((r, i) => {
+          const isMe = playerData && Number(r.id) === Number(playerData.id);
+          return `<tr style="border-bottom:1px solid var(--bdr);${isMe ? 'background:rgba(201,149,58,.08)' : ''}">
+            <td style="padding:10px 16px;font-family:'Cinzel',serif;font-size:14px;color:${i===0?'#e8b84b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--td)'}">${i+1}</td>
+            <td style="padding:10px 16px;font-size:13px;color:var(--tp)">${escHtml(r.name || r.username || 'Player')}${isMe ? ' <span style="font-size:9px;color:var(--goldl)">(YOU)</span>' : ''}</td>
+            <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ts)">${r.chapter || 1}</td>
+            <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--goldl)">${r.progress || 0}%</td>
+          </tr>`;
+        }).join('');
+      } catch {}
     }
 
     function portalLogout() {
@@ -1268,6 +1618,58 @@
       playerData = null;
       location.reload();
     }
+
+    // ==========================================
+    // FORGOT PASSWORD
+    // ==========================================
+    function showForgotPassword() {
+      document.querySelector('.lcard:not(#forgot-card)').style.display = 'none';
+      document.getElementById('forgot-card').style.display = 'block';
+      document.getElementById('forgot-email').focus();
+    }
+
+    function hideForgotPassword() {
+      document.getElementById('forgot-card').style.display = 'none';
+      document.querySelector('.lcard:not(#forgot-card)').style.display = 'block';
+      document.getElementById('forgot-err').textContent = '';
+      document.getElementById('forgot-success').style.display = 'none';
+    }
+
+    async function submitForgotPassword() {
+      const email = document.getElementById('forgot-email').value.trim();
+      const errEl = document.getElementById('forgot-err');
+      const successEl = document.getElementById('forgot-success');
+      const btn = document.getElementById('forgot-btn');
+      errEl.textContent = '';
+      successEl.style.display = 'none';
+
+      if (!email) { errEl.textContent = 'Please enter your email address'; return; }
+
+      btn.disabled = true;
+      btn.textContent = 'SENDING...';
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        successEl.textContent = data.message || 'If an account exists with that email, a reset link has been sent.';
+        successEl.style.display = 'block';
+        btn.textContent = '✓ LINK SENT';
+      } catch {
+        errEl.textContent = 'Could not connect to server. Try again later.';
+        btn.disabled = false;
+        btn.textContent = '⚜ SEND RESET LINK';
+      }
+    }
+
+    // Enter key on forgot email field
+    document.getElementById('forgot-email')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitForgotPassword();
+    });
   </script>
 </body>
 
