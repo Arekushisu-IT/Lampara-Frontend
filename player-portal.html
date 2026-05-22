@@ -1576,7 +1576,7 @@
         el.innerHTML = data.rankings.map((r, i) => `
           <div style="display:flex;align-items:center;gap:8px;padding:5px 0;${i < data.rankings.length-1 ? 'border-bottom:1px solid var(--bdr)' : ''}">
             <span style="font-family:'Cinzel',serif;font-size:12px;color:${i===0?'#e8b84b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--td)'};min-width:20px">${i+1}</span>
-            <span style="font-size:12px;color:var(--tp);flex:1">${escHtml(r.name || r.username || 'Player')}</span>
+            <span style="font-size:12px;color:var(--tp);flex:1">${escHtml(r.playerName || r.name || r.username || 'Player')}</span>
             <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ts)">Ch.${r.chapter || 1}</span>
           </div>
         `).join('');
@@ -1595,11 +1595,12 @@
         if (!data.rankings || data.rankings.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--td);font-size:12px">No rankings yet</td></tr>'; return; }
         tbody.innerHTML = data.rankings.map((r, i) => {
           const isMe = playerData && Number(r.id) === Number(playerData.id);
+          const pct = r.questProgress !== undefined ? r.questProgress + '%' : (r.progress !== undefined ? r.progress + '%' : '0%');
           return `<tr style="border-bottom:1px solid var(--bdr);${isMe ? 'background:rgba(201,149,58,.08)' : ''}">
             <td style="padding:10px 16px;font-family:'Cinzel',serif;font-size:14px;color:${i===0?'#e8b84b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--td)'}">${i+1}</td>
-            <td style="padding:10px 16px;font-size:13px;color:var(--tp)">${escHtml(r.name || r.username || 'Player')}${isMe ? ' <span style="font-size:9px;color:var(--goldl)">(YOU)</span>' : ''}</td>
+            <td style="padding:10px 16px;font-size:13px;color:var(--tp)">${escHtml(r.playerName || r.name || r.username || 'Player')}${isMe ? ' <span style="font-size:9px;color:var(--goldl)">(YOU)</span>' : ''}</td>
             <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ts)">${r.chapter || 1}</td>
-            <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--goldl)">${r.progress || 0}%</td>
+            <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--goldl)">${pct}</td>
           </tr>`;
         }).join('');
       } catch {}
