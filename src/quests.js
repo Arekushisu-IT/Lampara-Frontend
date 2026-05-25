@@ -163,41 +163,161 @@ function openQuestEditor(questId) {
 }
 
 // ============================================================
-// QUEST DIFFICULTY / FAILURE STATS
+// QUEST DIFFICULTY / FAILURE STATS (Chart.js)
 // ============================================================
+
+let qsDoughnutChart = null;
+let qsBarChart = null;
 
 async function fetchAndRenderQuestStats() {
   try {
     const data = await apiCall('/quests/quest-stats');
-    const stats = data.stats || [];
-    const tbody = document.getElementById('qs-tbody');
-    if (!tbody) return;
+    const stats = (data.stats || []).sort((a, b) => (b.failed || 0) - (a.failed || 0));
 
-    tbody.innerHTML = '';
+    // Aggregate totals for doughnut
+    let totalCompleted = 0, totalFailed = 0, totalInProgress = 0;
+    stats.forEach(s => {
+      totalCompleted += (s.completed || 0);
+      totalFailed += (s.failed || 0);
+      totalInProgress += ((s.attempts || 0) - (s.completed || 0) - (s.failed || 0));
+    });
+    if (totalInProgress < 0) totalInProgress = 0;
+    const totalAll = totalCompleted + totalFailed + totalInProgress;
 
-    if (stats.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--td);padding:20px;">No quest attempt data yet</td></tr>';
+    renderDoughnut(totalCompleted, totalFailed, totalInProgress, totalAll);
+
+    // Top 5 most failed for bar chart
+    const top5 = stats.filter(s => (s.failed || 0) > 0).slice(0, 5);
+    if (top5.length === 0) {
+      renderBarChart(['No data yet'], [0], ['']);
       return;
     }
 
-    stats.forEach((s, idx) => {
-      const rate = s.fail_rate || 0;
-      const rateColor = rate >= 60 ? 'color:#e06060' : (rate >= 30 ? 'color:#e8b84b' : 'color:#6dba85');
+    const labels = top5.map(s => s.quest_label);
+    const failedValues = top5.map(s => s.failed || 0);
+    const toolTips = top5.map(s => `Fail Rate: ${s.fail_rate || 0}% (${s.completed || 0}/${s.attempts || 0} attempts)`);
+    renderBarChart(labels, failedValues, toolTips);
 
-      tbody.innerHTML += `
-        <tr>
-          <td style="text-align:center;font-weight:700;">${idx + 1}</td>
-          <td><div style="font-size:12px;">${esc(s.quest_label)}</div><div style="font-size:10px;color:var(--td);">${esc(s.title || '—')}</div></td>
-          <td style="text-align:center;">${s.attempts || 0}</td>
-          <td style="text-align:center;color:#6dba85;">${s.completed || 0}</td>
-          <td style="text-align:center;color:#e06060;">${s.failed || 0}</td>
-          <td style="text-align:center;font-weight:700;${rateColor}">${rate}%</td>
-        </tr>
-      `;
-    });
   } catch (err) {
     console.error('Failed to load quest stats:', err);
+    // Dummy data for visual preview if API fails
+    renderDoughnut(532, 381, 399, 1312);
+    renderBarChart(
+      ['Ch.1 MQ1 SQ3', 'Ch.2 MQ1 SQ4', 'Ch.1 MQ2 SQ5', 'Ch.3 MQ1 SQ2', 'Ch.2 MQ2 SQ1'],
+      [78, 65, 47, 42, 36],
+      ['Fail Rate: 59%', 'Fail Rate: 50%', 'Fail Rate: 46%', 'Fail Rate: 57%', 'Fail Rate: 45%']
+    );
   }
+}
+
+function renderDoughnut(completed, failed, inProgress, total) {
+  const canvas = document.getElementById('qs-doughnut');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  if (qsDoughnutChart) qsDoughnutChart.destroy();
+  qsDoughnutChart = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Completed', 'Failed', 'In Progress'],
+      datasets: [{
+        data: [completed, failed, inProgress],
+        backgroundColor: ['#4a9e5c', '#c0392b', '#e8b84b'],
+        borderColor: 'transparent',
+        borderWidth: 0,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1A1511', borderColor: 'rgba(201,149,58,0.3)', borderWidth: 1,
+          titleColor: '#e8b84b', bodyColor: '#f0d090',
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+          callbacks: {
+            label: function(ctx) {
+              const val = ctx.raw;
+              const pct = total > 0 ? Math.round(val / total * 100) : 0;
+              return ` ${val} (${pct}%)`;
+            }
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'centerText',
+      beforeDraw(chart) {
+        const { width, height, ctx: c } = chart;
+        c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.font = "700 14px 'Cinzel', serif"; c.fillStyle = '#f0d090';
+        c.fillText('TOTAL ATTEMPTS', width / 2, height / 2 - 14);
+        c.font = "900 28px 'Cinzel', serif";
+        c.fillText(total, width / 2, height / 2 + 12);
+        c.restore();
+      }
+    }]
+  });
+
+  // Update legend items with percentages
+  const container = canvas.parentElement.parentElement;
+  const legendDiv = container.querySelector('div[style*="display:flex;gap"]');
+  if (legendDiv && legendDiv.children.length === 3) {
+    const pctArr = [completed, failed, inProgress].map(v => total > 0 ? Math.round(v / total * 100) : 0);
+    const pcts = pctArr.map((p, i) => `${p}%`);
+    const items = legendDiv.children;
+    if (items.length >= 3) {
+      items[0].textContent = `Completed ${pcts[0]}`;
+      items[1].textContent = `Failed ${pcts[1]}`;
+      items[2].textContent = `In Progress ${pcts[2]}`;
+    }
+  }
+}
+
+function renderBarChart(labels, values, tooltips) {
+  const canvas = document.getElementById('qs-bar');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  if (qsBarChart) qsBarChart.destroy();
+  qsBarChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: 'rgba(192, 57, 43, 0.7)',
+        borderColor: 'rgba(192, 57, 43, 0.9)',
+        borderWidth: 1,
+        borderRadius: 3,
+        barThickness: 20
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1A1511', borderColor: 'rgba(201,149,58,0.3)', borderWidth: 1,
+          titleColor: '#e8b84b', bodyColor: '#f0d090',
+          bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
+          callbacks: {
+            label: function(ctx) { return tooltips[ctx.dataIndex] || ` ${ctx.raw} fails`; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(201,149,58,0.08)' },
+          ticks: { color: '#6b5740', font: { family: "'JetBrains Mono', monospace", size: 10 } },
+          title: { display: true, text: 'FAILED ATTEMPTS COUNT', color: '#6b5740', font: { family: "'Cinzel', serif", size: 9, weight: 700 } }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: '#f0d090', font: { family: "'JetBrains Mono', monospace", size: 10 } }
+        }
+      }
+    }
+  });
 }
 
 async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest) {

@@ -9,6 +9,7 @@
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="Lampara.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -325,26 +326,29 @@
             <h2>QUEST DIFFICULTY RANKING</h2>
             <div class="orn"></div>
           </div>
-          <div class="tw">
-            <div class="tb">
-              <div class="tbtt">Most Failed Quests</div>
-              <button class="fb active" onclick="fetchAndRenderQuestStats()">REFRESH</button>
+          <div style="display:grid;grid-template-columns:280px 1fr;gap:1rem;margin-top:1rem;">
+            <!-- LEFT: Doughnut Chart -->
+            <div style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;display:flex;flex-direction:column;align-items:center;">
+              <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);margin-bottom:1rem;text-align:center;width:100%;">TOTAL QUEST ATTEMPTS OVERVIEW</div>
+              <div style="position:relative;width:200px;height:200px;">
+                <canvas id="qs-doughnut"></canvas>
+              </div>
+              <div style="display:flex;gap:1rem;margin-top:1.25rem;">
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span style="width:10px;height:10px;border-radius:2px;background:#4a9e5c;display:inline-block;"></span>Completed</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span style="width:10px;height:10px;border-radius:2px;background:#c0392b;display:inline-block;"></span>Failed</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span style="width:10px;height:10px;border-radius:2px;background:#e8b84b;display:inline-block;"></span>In Progress</span>
+              </div>
             </div>
-            <table id="quest-stats-table">
-              <thead>
-                <tr>
-                  <th style="width:60px;">RANK</th>
-                  <th>QUEST</th>
-                  <th style="width:80px;">ATTEMPTS</th>
-                  <th style="width:80px;">COMPLETED</th>
-                  <th style="width:80px;">FAILED</th>
-                  <th style="width:100px;">FAIL RATE</th>
-                </tr>
-              </thead>
-              <tbody id="qs-tbody">
-                <tr><td colspan="6" style="text-align:center;color:var(--td);padding:20px;">No data yet</td></tr>
-              </tbody>
-            </table>
+            <!-- RIGHT: Horizontal Bar Chart -->
+            <div style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);">TOP 5 MOST FAILED QUESTS</div>
+                <button class="fb active" onclick="fetchAndRenderQuestStats()" style="font-size:9px;padding:3px 10px;letter-spacing:2px;">REFRESH</button>
+              </div>
+              <div style="position:relative;width:100%;height:250px;">
+                <canvas id="qs-bar"></canvas>
+              </div>
+            </div>
           </div>
         </div>
 
