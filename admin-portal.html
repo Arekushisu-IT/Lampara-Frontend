@@ -275,7 +275,7 @@
             <div class="sc">
               <div class="slbl">Total Players</div>
               <div class="sval" id="stat-total-players">0</div>
-              <div class="ssub">+12 this week</div>
+              <div class="ssub" id="stat-weekly-players">All registered</div>
               <div class="sico"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1z" />
                 </svg></div>
@@ -319,6 +319,31 @@
                 </tr>
               </thead>
               <tbody id="db-ptbody"> </tbody>
+            </table>
+          </div>
+          <div class="shdr" style="margin-top: 2rem;">
+            <h2>QUEST DIFFICULTY RANKING</h2>
+            <div class="orn"></div>
+          </div>
+          <div class="tw">
+            <div class="tb">
+              <div class="tbtt">Most Failed Quests</div>
+              <button class="fb active" onclick="fetchAndRenderQuestStats()">REFRESH</button>
+            </div>
+            <table id="quest-stats-table">
+              <thead>
+                <tr>
+                  <th style="width:60px;">RANK</th>
+                  <th>QUEST</th>
+                  <th style="width:80px;">ATTEMPTS</th>
+                  <th style="width:80px;">COMPLETED</th>
+                  <th style="width:80px;">FAILED</th>
+                  <th style="width:100px;">FAIL RATE</th>
+                </tr>
+              </thead>
+              <tbody id="qs-tbody">
+                <tr><td colspan="6" style="text-align:center;color:var(--td);padding:20px;">No data yet</td></tr>
+              </tbody>
             </table>
           </div>
         </div>

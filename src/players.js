@@ -204,6 +204,9 @@ async function fetchAndRenderPlayers() {
     const totalPlayersEl = document.getElementById('stat-total-players');
     if (totalPlayersEl) totalPlayersEl.textContent = players.length;
 
+    const weeklyEl = document.getElementById('stat-weekly-players');
+    if (weeklyEl) weeklyEl.textContent = `${players.stats?.weeklyNew || 0} this week`;
+
     const pendingEl = document.getElementById('stat-pending-approvals');
     if (pendingEl) pendingEl.textContent = pendingCount;
 
@@ -300,8 +303,7 @@ function renderPlayerRegistry(players) {
     const displayStatus = isBanned ? 'SUSPENDED' : (isPending ? 'PENDING' : 'ACTIVE');
 
     const initials = p.name.substring(0, 2).toUpperCase();
-    const subQuestsDone = p.current_sub_quest || 0;
-    const progressPct = Math.min(100, subQuestsDone * 20);
+    const progressPct = Math.min(100, p.overall_progress || 0);
     const email = p.email || 'Unassigned';
 
     // Codex format: Chapter-Quest (e.g., "1-2")

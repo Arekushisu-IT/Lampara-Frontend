@@ -77,15 +77,6 @@ function renderChapterQuests(chapterNum) {
       <div class="csub">${esc(description)}</div>
       <span class="pill ${statusClass}">${statusText}</span>
 
-      ${!isActive ? `
-        <div class="sbov">
-          <div class="sbtx">STANDBY</div>
-        </div>
-        <svg class="lkico" width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-        </svg>
-      ` : ''}
-
       ${isActive ? `
         <button class="cq-edit-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${safeTitle}', ${sub.chapter}, ${sub.main_quest}, ${sub.sub_quest})" style="margin-top: 15px; width: 100%; border-radius: 4px; padding: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid rgba(232, 184, 75, 0.4); background: rgba(26, 22, 17, 0.8); color: var(--goldl); transition: all 0.2s;">
           <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
@@ -93,7 +84,14 @@ function renderChapterQuests(chapterNum) {
           </svg>
           DIALOGUES
         </button>
-      ` : ''}
+      ` : `
+        <button class="cq-edit-btn" onclick="event.stopPropagation(); openQuestEditor(${sub ? sub.id : 'null'})" style="margin-top: 15px; width: 100%; border-radius: 4px; padding: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid rgba(232, 184, 75, 0.4); background: rgba(26, 22, 17, 0.8); color: var(--goldl); transition: all 0.2s;">
+          <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+          </svg>
+          EDIT QUEST
+        </button>
+      `}
     `;
 
     container.appendChild(card);
@@ -148,11 +146,60 @@ function updateQuestStats(quests) {
   }
 }
 
-
+// Open quest editor for standby quests
+function openQuestEditor(questId) {
+  if (!questId) {
+    showT('No quest selected', 'error');
+    return;
+  }
+  const quest = allQuests.find(q => q.id === questId);
+  if (!quest) {
+    showT('Quest not found', 'error');
+    return;
+  }
+  // Open the existing dialogue editor modal but with quest metadata editing
+  const safeTitle = esc(quest.title || '').replace(/'/g, "\\'");
+  openDialogueEditor(questId, safeTitle, quest.chapter, quest.main_quest, quest.sub_quest);
+}
 
 // ============================================================
-// DIALOGUE EDITOR
+// QUEST DIFFICULTY / FAILURE STATS
 // ============================================================
+
+async function fetchAndRenderQuestStats() {
+  try {
+    const data = await apiCall('/quests/quest-stats');
+    const stats = data.stats || [];
+    const tbody = document.getElementById('qs-tbody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (stats.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--td);padding:20px;">No quest attempt data yet</td></tr>';
+      return;
+    }
+
+    stats.forEach((s, idx) => {
+      const rate = s.fail_rate || 0;
+      const rateColor = rate >= 60 ? 'color:#e06060' : (rate >= 30 ? 'color:#e8b84b' : 'color:#6dba85');
+
+      tbody.innerHTML += `
+        <tr>
+          <td style="text-align:center;font-weight:700;">${idx + 1}</td>
+          <td><div style="font-size:12px;">${esc(s.quest_label)}</div><div style="font-size:10px;color:var(--td);">${esc(s.title || '—')}</div></td>
+          <td style="text-align:center;">${s.attempts || 0}</td>
+          <td style="text-align:center;color:#6dba85;">${s.completed || 0}</td>
+          <td style="text-align:center;color:#e06060;">${s.failed || 0}</td>
+          <td style="text-align:center;font-weight:700;${rateColor}">${rate}%</td>
+        </tr>
+      `;
+    });
+  } catch (err) {
+    console.error('Failed to load quest stats:', err);
+  }
+}
+
 async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest) {
   // Try to find the index to pass as the Quest Number
   const indexOrQuest = allQuests.filter(q => q.chapter === chapter).findIndex(q => q.id === questId) + 1;

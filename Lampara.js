@@ -10,20 +10,7 @@ function loadInitialData() {
   fetchAndRenderPendingApprovals();
   fetchAndRenderRecentlyProcessed();
   fetchAndRenderGameConfig();
-}
-
-// ============================================================
-// LAMPARA - Entry Point
-// Initializes modules and handles boot sequence
-// ============================================================
-
-function loadInitialData() {
-  fetchAndRenderPlayers();
-  fetchAndRenderQuests();
-  fetchAndRenderLogs();
-  fetchAndRenderPendingApprovals();
-  fetchAndRenderRecentlyProcessed();
-  fetchAndRenderGameConfig();
+  fetchAndRenderQuestStats();
 }
 
 // ============================================================

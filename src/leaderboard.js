@@ -74,7 +74,7 @@ function displayLeaderboard(rankings) {
 
     // ---- PROGRESS ----
     const progressCell = document.createElement('td');
-    progressCell.textContent = (entry.questProgress || 0) + '% (Ch. ' + (entry.chapter || 1) + ')';
+    progressCell.textContent = Math.min(100, entry.questProgress || 0) + '% (Ch. ' + (entry.chapter || 1) + ')';
     tr.appendChild(progressCell);
 
     // ---- FAIL COUNT (suspicion) ----
@@ -114,7 +114,7 @@ function updateLeaderboardStats(data) {
   const avgEl = document.getElementById('lb-stat-avg');
   if (avgEl && data.rankings && data.rankings.length > 0) {
     const avg = Math.round(
-      data.rankings.reduce((sum, r) => sum + (r.questProgress || 0), 0) / data.rankings.length
+      data.rankings.reduce((sum, r) => sum + Math.min(100, r.questProgress || 0), 0) / data.rankings.length
     );
     avgEl.textContent = avg + '%';
   }
