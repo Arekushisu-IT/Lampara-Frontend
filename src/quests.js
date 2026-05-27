@@ -56,6 +56,17 @@ function switchMainQuest(mqNum) {
   renderChapterQuests(mqNum);
 }
 
+// Main Quest Configuration
+const MQ_CONFIG = {
+  1: { count: 4, startSq: 1, startCh: 1 },
+  2: { count: 4, startSq: 5, startCh: 9 },
+  3: { count: 4, startSq: 9, startCh: 17 },
+  4: { count: 4, startSq: 13, startCh: 25 },
+  5: { count: 2, startSq: 17, startCh: 33 },
+  6: { count: 1, startSq: 19, startCh: 37 },
+  7: { count: 1, startSq: 20, startCh: 39, isFinal: true }
+};
+
 // Render quests for a specific Main Quest
 function renderChapterQuests(mqNum) {
   const container = document.getElementById('quests-grid');
@@ -69,29 +80,41 @@ function renderChapterQuests(mqNum) {
     .sort((a, b) => a.sub_quest - b.sub_quest);
 
   let activeCount = 0;
+  
+  const config = MQ_CONFIG[mqNum] || { count: 4, startSq: 1, startCh: 1 };
+  const count = config.count;
 
-  // The user's architecture specifies exactly 4 Subquests per Main Quest in the frontend
-  for (let index = 0; index < 4; index++) {
+  for (let index = 0; index < count; index++) {
     const sub = mqQuests[index];
     
     const isActive = sub && (sub.status === 'active' || sub.status === 'completed');
     if (isActive) activeCount++;
 
-    const roman = ['I', 'II', 'III', 'IV'][index];
+    const roman = ['I', 'II', 'III', 'IV'][index] || 'I';
     
-    // Calculate book chapters based on 2-chapters-per-subquest rule
-    const startCh = ((mqNum - 1) * 8) + (index * 2) + 1;
+    // Calculate book chapters and cumulative subquest number
+    const globalSqNum = config.startSq + index;
+    const startCh = config.startCh + (index * 2);
     const endCh = startCh + 1;
-    const chapterLabel = `CH. ${startCh}-${endCh}`;
+    
+    let chapterLabel = `CH. ${startCh}-${endCh}`;
+    let sqLabel = `SUBQUEST ${globalSqNum}`;
+    
+    if (config.isFinal) {
+      chapterLabel = `CH. 39`;
+      sqLabel = `FINAL BOSS`;
+    }
 
     // Architecture Gameplay Loop
-    const loopTexts = [
-      'Cutscene ➔ Dialogue ➔ Anchor',
-      'Cutscene ➔ AR Hunt ➔ Anchor',
-      'Cutscene ➔ Clues ➔ Anchor',
-      `Suspicion Challenge ➔ ⦗ UNLOCKS MQ ${mqNum < 7 ? mqNum + 1 : 'FINALE'} ⦘`
-    ];
-    const gameplayLoop = loopTexts[index];
+    let gameplayLoop = '';
+    if (config.isFinal) {
+      gameplayLoop = 'Final Boss Battle ➔ ⦗ GAME CLEARED ⦘';
+    } else if (index === count - 1) { // Last subquest of the MQ unlocks next MQ
+      gameplayLoop = `Suspicion Challenge ➔ ⦗ UNLOCKS MQ ${mqNum + 1} ⦘`;
+    } else {
+      const loops = ['Cutscene ➔ Dialogue ➔ Anchor', 'Cutscene ➔ AR Hunt ➔ Anchor', 'Cutscene ➔ Clues ➔ Anchor'];
+      gameplayLoop = loops[index % 3];
+    }
 
     const title = sub ? (sub.title || 'Awaiting Storyboard') : 'Awaiting Storyboard';
     const description = sub ? (sub.description || 'No description available.') : 'No description available.';
@@ -105,7 +128,7 @@ function renderChapterQuests(mqNum) {
 
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-        <div class="cnum" style="margin-bottom: 0;">SUBQUEST ${index + 1}</div>
+        <div class="cnum" style="margin-bottom: 0;">${sqLabel}</div>
         <div class="cdec" style="position: static; font-size: 14px;">${roman}</div>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -140,7 +163,7 @@ function renderChapterQuests(mqNum) {
   const statLbl = document.getElementById('stat-qt-chap');
   if (statLbl) {
     const mqName = MQ_NAMES[mqNum] || `Main Quest ${mqNum}`;
-    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount} ACTIVE · ${4 - activeCount} STANDBY`;
+    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount} ACTIVE · ${count - activeCount} STANDBY`;
   }
 }
 
