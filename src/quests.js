@@ -40,8 +40,7 @@ function normalizeDialogueSpeakerBlocks(blocks, fallbackNpcName = 'NPC') {
     .map(block => ({
       name: String(block?.name || '').trim(),
       text: String(block?.text || '').trim()
-    }))
-    .filter((block, index) => block.name || block.text || index === 0);
+    }));
 
   if (normalized.length === 0) {
     normalized.push({ name: fallbackNpcName || 'NPC', text: '' });
@@ -117,6 +116,29 @@ function getDialogueSpeakerBlocksFromForm(prefix) {
   }));
 }
 
+function bindDialogueSpeakerControls(prefix) {
+  const addButton = document.getElementById(`${prefix}-speaker-add`);
+  if (addButton) {
+    addButton.onclick = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      addDialogueSpeakerBlock(prefix);
+    };
+  }
+
+  const container = document.getElementById(`${prefix}-speaker-list`);
+  if (!container) return;
+
+  container.querySelectorAll('[data-remove-speaker-index]').forEach(button => {
+    button.onclick = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      const index = Number(button.dataset.removeSpeakerIndex);
+      removeDialogueSpeakerBlock(prefix, index);
+    };
+  });
+}
+
 function renderDialogueSpeakerBlocks(prefix, blocks) {
   const container = document.getElementById(`${prefix}-speaker-list`);
   if (!container) return;
@@ -136,7 +158,7 @@ function renderDialogueSpeakerBlocks(prefix, blocks) {
       </div>
       ${normalized.length > 1 ? `
         <div class="dlg-form-actions">
-          <button class="dlg-form-cancel" type="button" onclick="removeDialogueSpeakerBlock('${prefix}', ${index})">REMOVE NPC ${index + 1}</button>
+          <button class="dlg-form-cancel" type="button" data-remove-speaker-index="${index}">REMOVE NPC ${index + 1}</button>
         </div>
       ` : ''}
     </div>
@@ -148,6 +170,8 @@ function renderDialogueSpeakerBlocks(prefix, blocks) {
     addButton.disabled = isMaxed;
     addButton.textContent = isMaxed ? 'MAX 5 NPCS' : '+ ADD NPC';
   }
+
+  bindDialogueSpeakerControls(prefix);
 }
 
 function addDialogueSpeakerBlock(prefix) {
