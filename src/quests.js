@@ -2,65 +2,83 @@
 // QUESTS - Dynamic Quest Management
 // ============================================================
 
-let currentChapter = 1;
+let currentMainQuest = 1;
 let allQuests = [];
 let currentEditQuest = null; // Track which sub-quest's dialogues are being edited
 
-// Initialize chapter tab listeners
+// Main Quest names for tab tooltips
+const MQ_NAMES = {
+  1: 'The Mask of Simoun',
+  2: 'Power and Education',
+  3: 'The Fuse is Lit',
+  4: 'Collapse and Consequences',
+  5: 'The Lamp Conspiracy',
+  6: 'The Fall of Simoun',
+  7: 'Final Boss'
+};
+
+// Initialize Main Quest tab listeners
 function initChapterTabs() {
   const tabs = document.querySelectorAll('.chapter-tab');
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      const chapter = parseInt(tab.dataset.chapter);
-      switchChapter(chapter);
+      const mq = parseInt(tab.dataset.mq);
+      switchMainQuest(mq);
     });
   });
 }
 
-// Switch to a different chapter
-function switchChapter(chapterNum) {
-  currentChapter = chapterNum;
+// Switch to a different Main Quest
+function switchMainQuest(mqNum) {
+  currentMainQuest = mqNum;
 
   // Update tab active states
   const tabs = document.querySelectorAll('.chapter-tab');
   tabs.forEach(tab => {
-    const tabChapter = parseInt(tab.dataset.chapter);
-    if (tabChapter === chapterNum) {
+    const tabMQ = parseInt(tab.dataset.mq);
+    if (tabMQ === mqNum) {
       tab.classList.add('active');
       tab.classList.remove('standby');
     } else {
       tab.classList.remove('active');
-      // Mark chapters 3-5 as standby
-      if (tabChapter > 2) {
+      // Mark MQs without active quests as standby
+      const mqQuests = allQuests.filter(q => q.main_quest === tabMQ);
+      const hasActive = mqQuests.some(q => q.status === 'active' || q.status === 'completed');
+      if (!hasActive) {
         tab.classList.add('standby');
+      } else {
+        tab.classList.remove('standby');
       }
     }
   });
 
-  // Render quests for the selected chapter
-  renderChapterQuests(chapterNum);
+  // Render quests for the selected Main Quest
+  renderChapterQuests(mqNum);
 }
 
-// Render quests for a specific chapter
-function renderChapterQuests(chapterNum) {
+// Render quests for a specific Main Quest
+function renderChapterQuests(mqNum) {
   const container = document.getElementById('quests-grid');
   if (!container) return;
 
   container.innerHTML = '';
 
-  const startIndex = (chapterNum - 1) * 5;
-  const chapterQuests = allQuests.slice(startIndex, startIndex + 5);
+  // Filter quests by main_quest number, sorted by sub_quest
+  const mqQuests = allQuests
+    .filter(q => q.main_quest === mqNum)
+    .sort((a, b) => a.sub_quest - b.sub_quest);
 
   let activeCount = 0;
 
   for (let index = 0; index < 5; index++) {
-    const sub = chapterQuests[index];
+    const sub = mqQuests[index];
     
     const isActive = sub && (sub.status === 'active' || sub.status === 'completed');
     if (isActive) activeCount++;
 
     const roman = ['I', 'II', 'III', 'IV', 'V'][index];
-    const title = sub ? (sub.title || 'Awaiting Storyboard') : 'Awaiting Storyboard';
+    const isAnchor = index === 4;
+    const title = sub ? (sub.title || (isAnchor ? 'Anchor Cutscene' : 'Awaiting Storyboard')) : (isAnchor ? 'Anchor Cutscene' : 'Awaiting Storyboard');
     const description = sub ? (sub.description || 'No description available.') : 'No description available.';
     const statusClass = isActive ? 'pa' : 'pp';
     const statusText = isActive ? 'ACTIVE' : 'STANDBY';
@@ -72,7 +90,7 @@ function renderChapterQuests(chapterNum) {
 
     card.innerHTML = `
       <div class="cdec">${roman}</div>
-      <div class="cnum">QUEST ${index + 1}</div>
+      <div class="cnum">${isAnchor ? 'ANCHOR' : `SUBQUEST ${index + 1}`}</div>
       <div class="ctit">${esc(title)}</div>
       <div class="csub">${esc(description)}</div>
       <span class="pill ${statusClass}">${statusText}</span>
@@ -100,7 +118,8 @@ function renderChapterQuests(chapterNum) {
   // Update header stats
   const statLbl = document.getElementById('stat-qt-chap');
   if (statLbl) {
-    statLbl.textContent = `${activeCount} ACTIVE · ${5 - activeCount} STANDBY`;
+    const mqName = MQ_NAMES[mqNum] || `Main Quest ${mqNum}`;
+    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount} ACTIVE · ${5 - activeCount} STANDBY`;
   }
 }
 
@@ -117,8 +136,8 @@ async function fetchAndRenderQuests() {
     // Initialize chapter tabs
     initChapterTabs();
 
-    // Render current chapter (default: Chapter 1)
-    renderChapterQuests(currentChapter);
+    // Render current Main Quest (default: MQ 1)
+    renderChapterQuests(currentMainQuest);
 
     // Update dashboard stats with live quest counts
     updateQuestStats(quests);
@@ -659,5 +678,44 @@ async function saveArtifactPath(questId, inputId) {
   } catch (err) {
     console.error('Failed to save artifact path:', err);
     showT('Failed to save artifact path', 'error');
+  }
+}
+
+// ============================================================
+// IMPORT DIALOGUES FROM SEED
+// ============================================================
+
+async function importDialogues() {
+  try {
+    const toast = document.getElementById('import-toast');
+    const msgEl = document.getElementById('import-toast-msg');
+    
+    if (toast) toast.style.display = 'block';
+    if (msgEl) msgEl.textContent = ' Starting dialogue import...';
+
+    const resp = await fetch(API_BASE + '/quests/import-dialogues', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+
+    if (!resp.ok) throw new Error('Import failed');
+
+    const data = await resp.json();
+    
+    if (msgEl) msgEl.textContent = `✅ ${data.message || 'Import completed successfully'}`;
+    if (toast) {
+      setTimeout(() => { toast.style.display = 'none'; }, 5000);
+    }
+
+    // Refresh quest data
+    fetchAndRenderQuests();
+    
+  } catch (err) {
+    console.error('Import failed:', err);
+    const msgEl = document.getElementById('import-toast-msg');
+    if (msgEl) msgEl.textContent = `❌ Import failed: ${err.message}`;
   }
 }
