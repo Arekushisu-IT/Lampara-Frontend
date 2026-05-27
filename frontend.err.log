@@ -1,0 +1,39 @@
+::ffff:127.0.0.1 - - [27/May/2026 22:42:46] "GET /admin-portal.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /admin-portal.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /Lampara.css HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/Lampara.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/config.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/utils.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/api.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/auth.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/players.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/quests.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/gameConfig.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/leaderboard.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/logs.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /src/ui.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /Lampara.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] code 404, message File not found
+::ffff:127.0.0.1 - - [27/May/2026 22:42:59] "GET /favicon.ico HTTP/1.1" 404 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /admin-portal.html HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] code 404, message File not found
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /Lampara.css HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/Lampara.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/config.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/utils.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/api.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/auth.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/players.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/quests.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/gameConfig.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/leaderboard.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/logs.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /src/ui.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /Lampara.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] code 404, message File not found
+::ffff:127.0.0.1 - - [27/May/2026 22:43:08] "GET /favicon.ico HTTP/1.1" 404 -
+::ffff:127.0.0.1 - - [27/May/2026 22:57:13] "GET /admin-portal.html HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [27/May/2026 22:57:13] "GET /src/quests.js HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [27/May/2026 22:57:13] "GET /src/leaderboard.js HTTP/1.1" 304 -
+::ffff:127.0.0.1 - - [27/May/2026 22:57:13] "GET /src/ui.js HTTP/1.1" 304 -

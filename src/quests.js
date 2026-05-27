@@ -6,6 +6,23 @@ let currentMainQuest = 1;
 let allQuests = [];
 let currentEditQuest = null; // Track which sub-quest's dialogues are being edited
 
+function getDialogueDelta(dlg, optionKey) {
+  const explicit = dlg?.[`option_${optionKey}_delta`];
+  if (explicit !== undefined && explicit !== null && explicit !== '') {
+    return Number(explicit);
+  }
+
+  const isCorrect = Boolean(dlg?.[`option_${optionKey}_correct`]);
+  if (isCorrect) return 0;
+
+  return Number(dlg?.suspicion_penalty ?? 10);
+}
+
+function formatDelta(delta) {
+  const value = Number(delta || 0);
+  return `${value > 0 ? '+' : ''}${value}`;
+}
+
 // Main Quest names for tab tooltips
 const MQ_NAMES = {
   1: 'The Mask of Simoun',
@@ -446,13 +463,16 @@ async function refreshDialogueList(questId) {
 
     listEl.innerHTML = '';
     dialogues.forEach((dlg, idx) => {
+      const optionADelta = getDialogueDelta(dlg, 'a');
+      const optionBDelta = getDialogueDelta(dlg, 'b');
+      const optionCDelta = getDialogueDelta(dlg, 'c');
       const entry = document.createElement('div');
       entry.className = 'dlg-entry';
       entry.innerHTML = `
         <div class="dlg-entry-header">
           <span class="dlg-seq">#${dlg.sequence_order}</span>
           <span class="dlg-npc-name">${esc(dlg.npc_name)}</span>
-          <span class="dlg-penalty-badge">⚠ ${dlg.suspicion_penalty}pts penalty</span>
+          <span class="dlg-penalty-badge">A ${formatDelta(optionADelta)} | B ${formatDelta(optionBDelta)} | C ${formatDelta(optionCDelta)}</span>
           <div class="dlg-entry-actions">
             <button class="dlg-btn-edit" onclick="editDialogue(${dlg.id})" title="Edit">✎</button>
             <button class="dlg-btn-del" onclick="deleteDialogue(${dlg.id})" title="Delete">✕</button>
@@ -462,15 +482,15 @@ async function refreshDialogueList(questId) {
           <div class="dlg-npc-text">"${esc(dlg.npc_text)}"</div>
           <div class="dlg-options">
             <div class="dlg-option ${dlg.option_a_correct ? 'dlg-correct' : 'dlg-wrong'}">
-              <span class="dlg-opt-label">A${dlg.option_a_correct ? ' ✓' : ' ✗'}</span>
+              <span class="dlg-opt-label">A${dlg.option_a_correct ? ' ✓' : ' ✗'} (${formatDelta(optionADelta)})</span>
               ${esc(dlg.option_a_text)}
             </div>
             <div class="dlg-option ${dlg.option_b_correct ? 'dlg-correct' : 'dlg-wrong'}">
-              <span class="dlg-opt-label">B${dlg.option_b_correct ? ' ✓' : ' ✗'}</span>
+              <span class="dlg-opt-label">B${dlg.option_b_correct ? ' ✓' : ' ✗'} (${formatDelta(optionBDelta)})</span>
               ${esc(dlg.option_b_text)}
             </div>
             ${dlg.option_c_text ? `<div class="dlg-option ${dlg.option_c_correct ? 'dlg-correct' : 'dlg-wrong'}">
-              <span class="dlg-opt-label">C${dlg.option_c_correct ? ' ✓' : ' ✗'}</span>
+              <span class="dlg-opt-label">C${dlg.option_c_correct ? ' ✓' : ' ✗'} (${formatDelta(optionCDelta)})</span>
               ${esc(dlg.option_c_text)}
             </div>` : ''}
           </div>
@@ -514,12 +534,12 @@ async function addNewDialogue() {
       <div class="dlg-form-field dlg-f-half">
         <label>Option A (Player Choice)</label>
         <textarea id="dlg-f-opta" rows="2" placeholder="First choice text..."></textarea>
-        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-opta-correct" value="a"> Correct</label>
+        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-opta-correct" value="a" checked> Correct</label>
       </div>
       <div class="dlg-form-field dlg-f-half">
         <label>Option B (Player Choice)</label>
         <textarea id="dlg-f-optb" rows="2" placeholder="Second choice text..."></textarea>
-        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-optb-correct" value="b" checked> Correct</label>
+        <label class="dlg-radio-label"><input type="radio" name="dlg-f-correct" id="dlg-f-optb-correct" value="b"> Correct</label>
       </div>
       <div class="dlg-form-field dlg-f-half">
         <label>Option C (Player Choice, optional)</label>
@@ -529,9 +549,19 @@ async function addNewDialogue() {
     </div>
     <div class="dlg-form-row">
       <div class="dlg-form-field dlg-f-half">
-        <label>Suspicion Penalty (wrong answer)</label>
-        <input type="number" id="dlg-f-penalty" value="10" min="1" max="100">
+        <label>Option A Delta</label>
+        <input type="number" id="dlg-f-delta-a" value="-10" min="-100" max="100">
       </div>
+      <div class="dlg-form-field dlg-f-half">
+        <label>Option B Delta</label>
+        <input type="number" id="dlg-f-delta-b" value="10" min="-100" max="100">
+      </div>
+      <div class="dlg-form-field dlg-f-half">
+        <label>Option C Delta</label>
+        <input type="number" id="dlg-f-delta-c" value="35" min="-100" max="100">
+      </div>
+    </div>
+    <div class="dlg-form-row">
       <div class="dlg-form-field dlg-f-half">
         <label>Context Notes (admin only)</label>
         <input type="text" id="dlg-f-notes" placeholder="Optional reference notes...">
@@ -561,7 +591,10 @@ async function submitNewDialogue() {
   const option_b_correct = correctOption === 'b' ? 1 : 0;
   const option_c_correct = correctOption === 'c' ? 1 : 0;
 
-  const suspicion_penalty = parseInt(document.getElementById('dlg-f-penalty')?.value) || 10;
+  const option_a_delta = parseInt(document.getElementById('dlg-f-delta-a')?.value, 10);
+  const option_b_delta = parseInt(document.getElementById('dlg-f-delta-b')?.value, 10);
+  const option_c_delta = parseInt(document.getElementById('dlg-f-delta-c')?.value, 10);
+  const suspicion_penalty = Number.isFinite(option_b_delta) ? option_b_delta : 10;
   const context_notes = document.getElementById('dlg-f-notes')?.value?.trim() || '';
 
   if (!npc_text || !option_a_text || !option_b_text) {
@@ -574,7 +607,8 @@ async function submitNewDialogue() {
       method: 'POST',
       body: JSON.stringify({
         npc_name, npc_text, option_a_text, option_b_text, option_c_text,
-        option_a_correct, option_b_correct, option_c_correct, suspicion_penalty, context_notes
+        option_a_correct, option_b_correct, option_c_correct,
+        option_a_delta, option_b_delta, option_c_delta, suspicion_penalty, context_notes
       })
     });
 
@@ -607,6 +641,9 @@ async function editDialogue(dialogueId) {
     const form = document.createElement('div');
     form.id = 'dlg-edit-form';
     form.className = 'dlg-form dlg-form-edit';
+    const optionADelta = getDialogueDelta(dlg, 'a');
+    const optionBDelta = getDialogueDelta(dlg, 'b');
+    const optionCDelta = getDialogueDelta(dlg, 'c');
     form.innerHTML = `
       <div class="dlg-form-title">EDIT DIALOGUE #${dlg.sequence_order}</div>
       <div class="dlg-form-field">
@@ -636,9 +673,19 @@ async function editDialogue(dialogueId) {
       </div>
       <div class="dlg-form-row">
         <div class="dlg-form-field dlg-f-half">
-          <label>Suspicion Penalty</label>
-          <input type="number" id="dlg-e-penalty" value="${dlg.suspicion_penalty}" min="1" max="100">
+          <label>Option A Delta</label>
+          <input type="number" id="dlg-e-delta-a" value="${optionADelta}" min="-100" max="100">
         </div>
+        <div class="dlg-form-field dlg-f-half">
+          <label>Option B Delta</label>
+          <input type="number" id="dlg-e-delta-b" value="${optionBDelta}" min="-100" max="100">
+        </div>
+        <div class="dlg-form-field dlg-f-half">
+          <label>Option C Delta</label>
+          <input type="number" id="dlg-e-delta-c" value="${optionCDelta}" min="-100" max="100">
+        </div>
+      </div>
+      <div class="dlg-form-row">
         <div class="dlg-form-field dlg-f-half">
           <label>Context Notes</label>
           <input type="text" id="dlg-e-notes" value="${esc(dlg.context_notes || '')}">
@@ -669,7 +716,10 @@ async function submitEditDialogue(dialogueId) {
   const option_b_correct = correctOption === 'b' ? 1 : 0;
   const option_c_correct = correctOption === 'c' ? 1 : 0;
 
-  const suspicion_penalty = parseInt(document.getElementById('dlg-e-penalty')?.value) || 10;
+  const option_a_delta = parseInt(document.getElementById('dlg-e-delta-a')?.value, 10);
+  const option_b_delta = parseInt(document.getElementById('dlg-e-delta-b')?.value, 10);
+  const option_c_delta = parseInt(document.getElementById('dlg-e-delta-c')?.value, 10);
+  const suspicion_penalty = Number.isFinite(option_b_delta) ? option_b_delta : 10;
   const context_notes = document.getElementById('dlg-e-notes')?.value?.trim() || '';
 
   try {
@@ -677,8 +727,8 @@ async function submitEditDialogue(dialogueId) {
       method: 'PUT',
       body: JSON.stringify({
         npc_name, npc_text, option_a_text, option_b_text, option_c_text,
-
-option_a_correct, option_b_correct, option_c_correct, suspicion_penalty, context_notes
+        option_a_correct, option_b_correct, option_c_correct,
+        option_a_delta, option_b_delta, option_c_delta, suspicion_penalty, context_notes
       })
     });
 
