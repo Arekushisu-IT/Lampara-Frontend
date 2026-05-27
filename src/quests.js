@@ -23,6 +23,152 @@ function formatDelta(delta) {
   return `${value > 0 ? '+' : ''}${value}`;
 }
 
+function formatSpeakerSegment(name, text) {
+  const safeName = String(name || '').trim();
+  const safeText = String(text || '').trim();
+  if (!safeName && !safeText) return '';
+  if (!safeName) return safeText;
+  if (!safeText) return `${safeName}:`;
+  return `${safeName}:\n${safeText}`;
+}
+
+const MAX_DIALOGUE_SPEAKER_BLOCKS = 5;
+
+function normalizeDialogueSpeakerBlocks(blocks, fallbackNpcName = 'NPC') {
+  const normalized = (Array.isArray(blocks) ? blocks : [])
+    .slice(0, MAX_DIALOGUE_SPEAKER_BLOCKS)
+    .map(block => ({
+      name: String(block?.name || '').trim(),
+      text: String(block?.text || '').trim()
+    }))
+    .filter((block, index) => block.name || block.text || index === 0);
+
+  if (normalized.length === 0) {
+    normalized.push({ name: fallbackNpcName || 'NPC', text: '' });
+  }
+
+  if (!normalized[0].name) {
+    normalized[0].name = fallbackNpcName || 'NPC';
+  }
+
+  return normalized.slice(0, MAX_DIALOGUE_SPEAKER_BLOCKS);
+}
+
+function parseDialogueBlocks(rawText, fallbackNpcName = 'NPC') {
+  const text = String(rawText || '').replace(/\r/g, '').trim();
+  const speakerPattern = /^([^:\n]+):\n([\s\S]*?)(?=\n\n[^:\n]+:\n|$)/gm;
+  const narrationSegments = [];
+  const speakerBlocks = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = speakerPattern.exec(text)) !== null) {
+    const leadingText = text.slice(lastIndex, match.index).trim();
+    if (leadingText) {
+      narrationSegments.push(leadingText);
+    }
+
+    speakerBlocks.push({
+      name: match[1].trim(),
+      text: match[2].trim()
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const trailingText = text.slice(lastIndex).trim();
+  if (trailingText) {
+    narrationSegments.push(trailingText);
+  }
+
+  if (speakerBlocks.length === 0) {
+    return {
+      narrationText: '',
+      speakerBlocks: normalizeDialogueSpeakerBlocks([
+        { name: fallbackNpcName || 'NPC', text }
+      ], fallbackNpcName)
+    };
+  }
+
+  return {
+    narrationText: narrationSegments.join('\n\n').trim(),
+    speakerBlocks: normalizeDialogueSpeakerBlocks(speakerBlocks, fallbackNpcName)
+  };
+}
+
+function buildDialogueTextFromBlocks(narrationText, speakerBlocks) {
+  const cleanedBlocks = normalizeDialogueSpeakerBlocks(speakerBlocks)
+    .map((block, index) => ({
+      name: String(block.name || '').trim() || (index === 0 ? 'NPC' : ''),
+      text: String(block.text || '').trim()
+    }))
+    .filter(block => block.text);
+
+  return [
+    String(narrationText || '').trim(),
+    ...cleanedBlocks.map(block => formatSpeakerSegment(block.name || 'NPC', block.text))
+  ].filter(Boolean).join('\n\n').trim();
+}
+
+function getDialogueSpeakerBlocksFromForm(prefix) {
+  return Array.from(document.querySelectorAll(`#${prefix}-speaker-list [data-dialogue-speaker-block]`)).map(block => ({
+    name: block.querySelector('[data-speaker-name]')?.value?.trim() || '',
+    text: block.querySelector('[data-speaker-text]')?.value?.trim() || ''
+  }));
+}
+
+function renderDialogueSpeakerBlocks(prefix, blocks) {
+  const container = document.getElementById(`${prefix}-speaker-list`);
+  if (!container) return;
+
+  const normalized = normalizeDialogueSpeakerBlocks(blocks);
+  container.innerHTML = normalized.map((block, index) => `
+    <div class="dlg-form-field" data-dialogue-speaker-block>
+      <div class="dlg-form-row">
+        <div class="dlg-form-field dlg-f-half">
+          <label>NPC ${index + 1} Name</label>
+          <input type="text" data-speaker-name value="${esc(block.name)}" placeholder="e.g., Basilio, Simoun, Isagani">
+        </div>
+        <div class="dlg-form-field dlg-f-half">
+          <label>NPC ${index + 1} Dialogue</label>
+          <textarea data-speaker-text rows="3" placeholder="Dialogue line for NPC ${index + 1}...">${esc(block.text)}</textarea>
+        </div>
+      </div>
+      ${normalized.length > 1 ? `
+        <div class="dlg-form-actions">
+          <button class="dlg-form-cancel" type="button" onclick="removeDialogueSpeakerBlock('${prefix}', ${index})">REMOVE NPC ${index + 1}</button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+
+  const addButton = document.getElementById(`${prefix}-speaker-add`);
+  if (addButton) {
+    const isMaxed = normalized.length >= MAX_DIALOGUE_SPEAKER_BLOCKS;
+    addButton.disabled = isMaxed;
+    addButton.textContent = isMaxed ? 'MAX 5 NPCS' : '+ ADD NPC';
+  }
+}
+
+function addDialogueSpeakerBlock(prefix) {
+  const blocks = getDialogueSpeakerBlocksFromForm(prefix);
+  if (blocks.length >= MAX_DIALOGUE_SPEAKER_BLOCKS) {
+    showT('Maximum of 5 NPC dialogue blocks per line', 'error');
+    return;
+  }
+
+  blocks.push({ name: '', text: '' });
+  renderDialogueSpeakerBlocks(prefix, blocks);
+}
+
+function removeDialogueSpeakerBlock(prefix, index) {
+  const blocks = getDialogueSpeakerBlocksFromForm(prefix);
+  if (blocks.length <= 1) return;
+
+  blocks.splice(index, 1);
+  renderDialogueSpeakerBlocks(prefix, blocks);
+}
+
 // Main Quest names for tab tooltips
 const MQ_NAMES = {
   1: 'The Mask of Simoun',
@@ -531,12 +677,14 @@ async function addNewDialogue() {
   form.innerHTML = `
     <div class="dlg-form-title">NEW DIALOGUE LINE</div>
     <div class="dlg-form-field">
-      <label>NPC Name</label>
-      <input type="text" id="dlg-f-npc" value="NPC" placeholder="e.g., Servant, Basilio, Official">
+      <label>Narration / Stage Direction (optional)</label>
+      <textarea id="dlg-f-narration" rows="2" placeholder="Scene setup, movement, or descriptive text outside the spoken lines..."></textarea>
     </div>
     <div class="dlg-form-field">
-      <label>NPC Dialogue Text</label>
-      <textarea id="dlg-f-text" rows="3" placeholder='The NPC dialogue line shown to the player...'></textarea>
+      <div class="dlg-form-actions">
+        <button class="dlg-form-save" type="button" id="dlg-f-speaker-add" onclick="addDialogueSpeakerBlock('dlg-f')">+ ADD NPC</button>
+      </div>
+      <div id="dlg-f-speaker-list"></div>
     </div>
     <div class="dlg-form-row">
       <div class="dlg-form-field dlg-f-half">
@@ -581,14 +729,17 @@ async function addNewDialogue() {
     </div>
   `;
   listEl.appendChild(form);
+  renderDialogueSpeakerBlocks('dlg-f', [{ name: 'NPC', text: '' }]);
   form.scrollIntoView({ behavior: 'smooth' });
 }
 
 async function submitNewDialogue() {
   if (!currentEditQuest) return;
 
-  const npc_name = document.getElementById('dlg-f-npc')?.value?.trim() || 'NPC';
-  const npc_text = document.getElementById('dlg-f-text')?.value?.trim();
+  const narrationText = document.getElementById('dlg-f-narration')?.value?.trim() || '';
+  const speakerBlocks = getDialogueSpeakerBlocksFromForm('dlg-f');
+  const npc_name = speakerBlocks.find(block => block.name)?.name?.trim() || 'NPC';
+  const npc_text = buildDialogueTextFromBlocks(narrationText, speakerBlocks);
   const option_a_text = document.getElementById('dlg-f-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-f-optb')?.value?.trim();
   const option_c_text = document.getElementById('dlg-f-optc')?.value?.trim() || null;
@@ -652,15 +803,18 @@ async function editDialogue(dialogueId) {
     const optionADelta = getDialogueDelta(dlg, 'a');
     const optionBDelta = getDialogueDelta(dlg, 'b');
     const optionCDelta = getDialogueDelta(dlg, 'c');
+    const dialogueStructure = parseDialogueBlocks(dlg.npc_text, dlg.npc_name);
     form.innerHTML = `
       <div class="dlg-form-title">EDIT DIALOGUE #${dlg.sequence_order}</div>
       <div class="dlg-form-field">
-        <label>NPC Name</label>
-        <input type="text" id="dlg-e-npc" value="${esc(dlg.npc_name)}">
+        <label>Narration / Stage Direction (optional)</label>
+        <textarea id="dlg-e-narration" rows="2" placeholder="Scene setup, movement, or descriptive text outside the spoken lines...">${esc(dialogueStructure.narrationText)}</textarea>
       </div>
       <div class="dlg-form-field">
-        <label>NPC Dialogue Text</label>
-        <textarea id="dlg-e-text" rows="3">${esc(dlg.npc_text)}</textarea>
+        <div class="dlg-form-actions">
+          <button class="dlg-form-save" type="button" id="dlg-e-speaker-add" onclick="addDialogueSpeakerBlock('dlg-e')">+ ADD NPC</button>
+        </div>
+        <div id="dlg-e-speaker-list"></div>
       </div>
       <div class="dlg-form-row">
         <div class="dlg-form-field dlg-f-half">
@@ -705,6 +859,7 @@ async function editDialogue(dialogueId) {
       </div>
     `;
     listEl.prepend(form);
+    renderDialogueSpeakerBlocks('dlg-e', dialogueStructure.speakerBlocks);
     form.scrollIntoView({ behavior: 'smooth' });
   } catch (err) {
     showT('Failed to load dialogue for editing', 'error');
@@ -712,8 +867,10 @@ async function editDialogue(dialogueId) {
 }
 
 async function submitEditDialogue(dialogueId) {
-  const npc_name = document.getElementById('dlg-e-npc')?.value?.trim();
-  const npc_text = document.getElementById('dlg-e-text')?.value?.trim();
+  const narrationText = document.getElementById('dlg-e-narration')?.value?.trim() || '';
+  const speakerBlocks = getDialogueSpeakerBlocksFromForm('dlg-e');
+  const npc_name = speakerBlocks.find(block => block.name)?.name?.trim() || 'NPC';
+  const npc_text = buildDialogueTextFromBlocks(narrationText, speakerBlocks);
   const option_a_text = document.getElementById('dlg-e-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-e-optb')?.value?.trim();
   const option_c_text = document.getElementById('dlg-e-optc')?.value?.trim() || null;
@@ -729,6 +886,11 @@ async function submitEditDialogue(dialogueId) {
   const option_c_delta = parseInt(document.getElementById('dlg-e-delta-c')?.value, 10);
   const suspicion_penalty = Number.isFinite(option_b_delta) ? option_b_delta : 10;
   const context_notes = document.getElementById('dlg-e-notes')?.value?.trim() || '';
+
+  if (!npc_text || !option_a_text || !option_b_text) {
+    showT('Please fill in the dialogue text and required player choices', 'error');
+    return;
+  }
 
   try {
     await apiCall(`/quests/dialogues/${dialogueId}`, {
