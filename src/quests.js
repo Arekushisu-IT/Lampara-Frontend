@@ -78,6 +78,12 @@ function renderChapterQuests(mqNum) {
 
     const roman = ['I', 'II', 'III', 'IV', 'V'][index];
     const isAnchor = index === 4;
+    
+    // Calculate book chapters based on 2-chapters-per-subquest rule
+    const startCh = ((mqNum - 1) * 8) + (index * 2) + 1;
+    const endCh = startCh + 1;
+    const chapterLabel = isAnchor ? `MQ${mqNum} FINALE` : `CH. ${startCh}-${endCh}`;
+
     const title = sub ? (sub.title || (isAnchor ? 'Anchor Cutscene' : 'Awaiting Storyboard')) : (isAnchor ? 'Anchor Cutscene' : 'Awaiting Storyboard');
     const description = sub ? (sub.description || 'No description available.') : 'No description available.';
     const statusClass = isActive ? 'pa' : 'pp';
@@ -89,8 +95,11 @@ function renderChapterQuests(mqNum) {
     let safeTitle = esc(title).replace(/'/g, "\\'");
 
     card.innerHTML = `
-      <div class="cdec">${roman}</div>
-      <div class="cnum">${isAnchor ? 'ANCHOR' : `SUBQUEST ${index + 1}`}</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div class="cnum" style="margin-bottom: 0;">${isAnchor ? 'ANCHOR' : `SUBQUEST ${index + 1}`}</div>
+        <div class="cdec" style="position: static; font-size: 14px;">${roman}</div>
+      </div>
+      <div style="font-size: 10px; color: var(--goldd); font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;">${chapterLabel}</div>
       <div class="ctit">${esc(title)}</div>
       <div class="csub">${esc(description)}</div>
       <span class="pill ${statusClass}">${statusText}</span>
