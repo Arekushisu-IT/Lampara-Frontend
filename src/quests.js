@@ -248,6 +248,18 @@ function openQuestEditor(questId) {
 
 let qsDoughnutChart = null;
 let qsBarChart = null;
+const STATIC_QUEST_DIFFICULTY_RANKING = [
+  { label: 'Ch.1 MQ1 SQ3', failed: 78, tooltip: 'Static ranking: 59% fail rate' },
+  { label: 'Ch.2 MQ1 SQ4', failed: 65, tooltip: 'Static ranking: 50% fail rate' },
+  { label: 'Ch.1 MQ2 SQ5', failed: 47, tooltip: 'Static ranking: 46% fail rate' },
+  { label: 'Ch.3 MQ1 SQ2', failed: 42, tooltip: 'Static ranking: 57% fail rate' },
+  { label: 'Ch.2 MQ2 SQ1', failed: 36, tooltip: 'Static ranking: 45% fail rate' }
+];
+
+function toStatNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 async function fetchAndRenderQuestStats() {
   try {
@@ -257,37 +269,33 @@ async function fetchAndRenderQuestStats() {
     // Aggregate totals for doughnut
     let totalCompleted = 0, totalFailed = 0, totalInProgress = 0;
     stats.forEach(s => {
-      totalCompleted += (s.completed || 0);
-      totalFailed += (s.failed || 0);
-      totalInProgress += ((s.attempts || 0) - (s.completed || 0) - (s.failed || 0));
+      const completed = toStatNumber(s.completed);
+      const failed = toStatNumber(s.failed);
+      const attempts = toStatNumber(s.attempts);
+      totalCompleted += completed;
+      totalFailed += failed;
+      totalInProgress += (attempts - completed - failed);
     });
     if (totalInProgress < 0) totalInProgress = 0;
     const totalAll = totalCompleted + totalFailed + totalInProgress;
 
     renderDoughnut(totalCompleted, totalFailed, totalInProgress, totalAll);
-
-    // Top 5 most failed for bar chart
-    const top5 = stats.filter(s => (s.failed || 0) > 0).slice(0, 5);
-    if (top5.length === 0) {
-      renderBarChart(['No data yet'], [0], ['']);
-      return;
-    }
-
-    const labels = top5.map(s => s.quest_label);
-    const failedValues = top5.map(s => s.failed || 0);
-    const toolTips = top5.map(s => `Fail Rate: ${s.fail_rate || 0}% (${s.completed || 0}/${s.attempts || 0} attempts)`);
-    renderBarChart(labels, failedValues, toolTips);
+    renderStaticQuestDifficultyRanking();
 
   } catch (err) {
     console.error('Failed to load quest stats:', err);
     // Dummy data for visual preview if API fails
     renderDoughnut(532, 381, 399, 1312);
-    renderBarChart(
-      ['Ch.1 MQ1 SQ3', 'Ch.2 MQ1 SQ4', 'Ch.1 MQ2 SQ5', 'Ch.3 MQ1 SQ2', 'Ch.2 MQ2 SQ1'],
-      [78, 65, 47, 42, 36],
-      ['Fail Rate: 59%', 'Fail Rate: 50%', 'Fail Rate: 46%', 'Fail Rate: 57%', 'Fail Rate: 45%']
-    );
+    renderStaticQuestDifficultyRanking();
   }
+}
+
+function renderStaticQuestDifficultyRanking() {
+  renderBarChart(
+    STATIC_QUEST_DIFFICULTY_RANKING.map(item => item.label),
+    STATIC_QUEST_DIFFICULTY_RANKING.map(item => item.failed),
+    STATIC_QUEST_DIFFICULTY_RANKING.map(item => item.tooltip)
+  );
 }
 
 function renderDoughnut(completed, failed, inProgress, total) {
