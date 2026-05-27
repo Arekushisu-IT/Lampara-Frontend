@@ -116,6 +116,10 @@ function getDialogueSpeakerBlocksFromForm(prefix) {
   }));
 }
 
+function getPrimarySpeakerName(speakerBlocks, fallbackNpcName = 'NPC') {
+  return speakerBlocks.find(block => block.name)?.name?.trim() || fallbackNpcName;
+}
+
 function bindDialogueSpeakerControls(prefix) {
   const addButton = document.getElementById(`${prefix}-speaker-add`);
   if (addButton) {
@@ -640,7 +644,7 @@ async function refreshDialogueList(questId) {
     }
 
     listEl.innerHTML = '';
-    dialogues.forEach((dlg, idx) => {
+    dialogues.forEach(dlg => {
       const optionADelta = getDialogueDelta(dlg, 'a');
       const optionBDelta = getDialogueDelta(dlg, 'b');
       const optionCDelta = getDialogueDelta(dlg, 'c');
@@ -676,7 +680,7 @@ async function refreshDialogueList(questId) {
         </div>
       `;
 
-listEl.appendChild(entry);
+      listEl.appendChild(entry);
     });
   } catch (err) {
     console.error('Failed to load dialogues:', err);
@@ -762,7 +766,7 @@ async function submitNewDialogue() {
 
   const narrationText = document.getElementById('dlg-f-narration')?.value?.trim() || '';
   const speakerBlocks = getDialogueSpeakerBlocksFromForm('dlg-f');
-  const npc_name = speakerBlocks.find(block => block.name)?.name?.trim() || 'NPC';
+  const npc_name = getPrimarySpeakerName(speakerBlocks);
   const npc_text = buildDialogueTextFromBlocks(narrationText, speakerBlocks);
   const option_a_text = document.getElementById('dlg-f-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-f-optb')?.value?.trim();
@@ -798,7 +802,7 @@ async function submitNewDialogue() {
     showT('Dialogue line created successfully', 'success');
     document.getElementById('dlg-new-form')?.remove();
 
-await refreshDialogueList(currentEditQuest.id);
+    await refreshDialogueList(currentEditQuest.id);
   } catch (err) {
     console.error('Failed to create dialogue:', err);
     showT('Failed to create dialogue line', 'error');
@@ -893,7 +897,7 @@ async function editDialogue(dialogueId) {
 async function submitEditDialogue(dialogueId) {
   const narrationText = document.getElementById('dlg-e-narration')?.value?.trim() || '';
   const speakerBlocks = getDialogueSpeakerBlocksFromForm('dlg-e');
-  const npc_name = speakerBlocks.find(block => block.name)?.name?.trim() || 'NPC';
+  const npc_name = getPrimarySpeakerName(speakerBlocks);
   const npc_text = buildDialogueTextFromBlocks(narrationText, speakerBlocks);
   const option_a_text = document.getElementById('dlg-e-opta')?.value?.trim();
   const option_b_text = document.getElementById('dlg-e-optb')?.value?.trim();
