@@ -70,21 +70,30 @@ function renderChapterQuests(mqNum) {
 
   let activeCount = 0;
 
-  for (let index = 0; index < 5; index++) {
+  // The user's architecture specifies exactly 4 Subquests per Main Quest in the frontend
+  for (let index = 0; index < 4; index++) {
     const sub = mqQuests[index];
     
     const isActive = sub && (sub.status === 'active' || sub.status === 'completed');
     if (isActive) activeCount++;
 
-    const roman = ['I', 'II', 'III', 'IV', 'V'][index];
-    const isAnchor = index === 4;
+    const roman = ['I', 'II', 'III', 'IV'][index];
     
     // Calculate book chapters based on 2-chapters-per-subquest rule
     const startCh = ((mqNum - 1) * 8) + (index * 2) + 1;
     const endCh = startCh + 1;
-    const chapterLabel = isAnchor ? `MQ${mqNum} FINALE` : `CH. ${startCh}-${endCh}`;
+    const chapterLabel = `CH. ${startCh}-${endCh}`;
 
-    const title = sub ? (sub.title || (isAnchor ? 'Anchor Cutscene' : 'Awaiting Storyboard')) : (isAnchor ? 'Anchor Cutscene' : 'Awaiting Storyboard');
+    // Architecture Gameplay Loop
+    const loopTexts = [
+      'Cutscene ➔ Dialogue ➔ Anchor',
+      'Cutscene ➔ AR Hunt ➔ Anchor',
+      'Cutscene ➔ Clues ➔ Anchor',
+      `Suspicion Challenge ➔ ⦗ UNLOCKS MQ ${mqNum < 7 ? mqNum + 1 : 'FINALE'} ⦘`
+    ];
+    const gameplayLoop = loopTexts[index];
+
+    const title = sub ? (sub.title || 'Awaiting Storyboard') : 'Awaiting Storyboard';
     const description = sub ? (sub.description || 'No description available.') : 'No description available.';
     const statusClass = isActive ? 'pa' : 'pp';
     const statusText = isActive ? 'ACTIVE' : 'STANDBY';
@@ -96,10 +105,13 @@ function renderChapterQuests(mqNum) {
 
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-        <div class="cnum" style="margin-bottom: 0;">${isAnchor ? 'ANCHOR' : `SUBQUEST ${index + 1}`}</div>
+        <div class="cnum" style="margin-bottom: 0;">SUBQUEST ${index + 1}</div>
         <div class="cdec" style="position: static; font-size: 14px;">${roman}</div>
       </div>
-      <div style="font-size: 10px; color: var(--goldd); font-family: 'JetBrains Mono', monospace; margin-bottom: 8px;">${chapterLabel}</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="font-size: 10px; color: var(--goldd); font-family: 'JetBrains Mono', monospace;">${chapterLabel}</div>
+        <div style="font-size: 9px; color: rgba(232, 184, 75, 0.7); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;">${gameplayLoop}</div>
+      </div>
       <div class="ctit">${esc(title)}</div>
       <div class="csub">${esc(description)}</div>
       <span class="pill ${statusClass}">${statusText}</span>
@@ -128,7 +140,7 @@ function renderChapterQuests(mqNum) {
   const statLbl = document.getElementById('stat-qt-chap');
   if (statLbl) {
     const mqName = MQ_NAMES[mqNum] || `Main Quest ${mqNum}`;
-    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount} ACTIVE · ${5 - activeCount} STANDBY`;
+    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount} ACTIVE · ${4 - activeCount} STANDBY`;
   }
 }
 
