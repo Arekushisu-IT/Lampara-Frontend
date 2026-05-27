@@ -12,6 +12,10 @@ async function updateLeaderboard() {
     }
 
     const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
     const response = await fetch(`${API_CONFIG.baseUrl}/leaderboard/rankings?limit=100`, {
       method: 'GET',
       headers: {
@@ -131,8 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const waitForConfig = setInterval(() => {
     if (typeof API_CONFIG !== 'undefined' && API_CONFIG.baseUrl) {
       clearInterval(waitForConfig);
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       const panel = document.getElementById('panel-lb') || document.getElementById('panel-gs');
-      if (panel) updateLeaderboard();
+      if (panel && token) updateLeaderboard();
     } else if (++attempts > 50) {
       clearInterval(waitForConfig);
       console.warn('[Leaderboard] API_CONFIG not loaded within timeout');
