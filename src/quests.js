@@ -730,24 +730,17 @@ async function saveArtifactPath(questId, inputId) {
 // ============================================================
 
 async function importDialogues() {
+  const toast = document.getElementById('import-toast');
+  const msgEl = document.getElementById('import-toast-msg');
+
   try {
-    const toast = document.getElementById('import-toast');
-    const msgEl = document.getElementById('import-toast-msg');
     
     if (toast) toast.style.display = 'block';
     if (msgEl) msgEl.textContent = ' Starting dialogue import...';
 
-    const resp = await fetch(API_BASE + '/quests/import-dialogues', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      }
+    const data = await apiCall('/quests/import-dialogues', {
+      method: 'POST'
     });
-
-    if (!resp.ok) throw new Error('Import failed');
-
-    const data = await resp.json();
     
     if (msgEl) msgEl.textContent = `✅ ${data.message || 'Import completed successfully'}`;
     if (toast) {
@@ -755,7 +748,8 @@ async function importDialogues() {
     }
 
     // Refresh quest data
-    fetchAndRenderQuests();
+    await fetchAndRenderQuests();
+    await fetchAndRenderQuestStats();
     
   } catch (err) {
     console.error('Import failed:', err);

@@ -50,11 +50,18 @@ function sp(id, el) {
 function initFilters() {
   document.querySelectorAll('.fb').forEach(btn => {
     btn.addEventListener('click', function () {
-      this.closest('.tb').querySelectorAll('.fb').forEach(b => b.classList.remove('active'));
+      const toolbar = this.closest('.tb');
+      const panel = this.closest('.panel');
+
+      if (!toolbar || !panel) {
+        return;
+      }
+
+      toolbar.querySelectorAll('.fb').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
 
       const filter = String(this.textContent || '').trim().toLowerCase();
-      const panelId = this.closest('.panel').id;
+      const panelId = panel.id;
 
       if (panelId === 'panel-lg') {
         const rows = document.querySelectorAll('#logtb tr[data-visibility]');
