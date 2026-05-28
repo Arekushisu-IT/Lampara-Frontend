@@ -23,6 +23,14 @@ function formatDelta(delta) {
   return `${value > 0 ? '+' : ''}${value}`;
 }
 
+function dialogueHasChoices(dlg) {
+  return Boolean(
+    String(dlg?.option_a_text || '').trim() ||
+    String(dlg?.option_b_text || '').trim() ||
+    String(dlg?.option_c_text || '').trim()
+  );
+}
+
 function formatSpeakerSegment(name, text) {
   const safeName = String(name || '').trim();
   const safeText = String(text || '').trim();
@@ -95,18 +103,47 @@ function parseDialogueBlocks(rawText, fallbackNpcName = 'NPC') {
   };
 }
 
-function buildDialogueTextFromBlocks(narrationText, speakerBlocks) {
-  const cleanedBlocks = normalizeDialogueSpeakerBlocks(speakerBlocks)
+function buildDialogueRowsFromBlocks(narrationText, speakerBlocks, choicePayload, fallbackNpcName = 'NPC') {
+  const cleanedNarration = String(narrationText || '').trim();
+  const normalizedBlocks = normalizeDialogueSpeakerBlocks(speakerBlocks, fallbackNpcName)
     .map((block, index) => ({
-      name: String(block.name || '').trim() || (index === 0 ? 'NPC' : ''),
+      name: String(block.name || '').trim() || (index === 0 ? fallbackNpcName : ''),
       text: String(block.text || '').trim()
     }))
     .filter(block => block.text);
 
-  return [
-    String(narrationText || '').trim(),
-    ...cleanedBlocks.map(block => formatSpeakerSegment(block.name || 'NPC', block.text))
-  ].filter(Boolean).join('\n\n').trim();
+  if (normalizedBlocks.length === 0) {
+    return [];
+  }
+
+  return normalizedBlocks.map((block, index) => {
+    const isLastBlock = index === normalizedBlocks.length - 1;
+    const hasChoicePayload = Boolean(
+      choicePayload.option_a_text ||
+      choicePayload.option_b_text ||
+      choicePayload.option_c_text
+    );
+    const attachChoices = isLastBlock && hasChoicePayload;
+    const npcText = index === 0 && cleanedNarration
+      ? `${cleanedNarration}\n\n${block.text}`.trim()
+      : block.text;
+
+    return {
+      npc_name: block.name || fallbackNpcName,
+      npc_text: npcText,
+      option_a_text: attachChoices ? choicePayload.option_a_text : '',
+      option_b_text: attachChoices ? choicePayload.option_b_text : '',
+      option_c_text: attachChoices ? choicePayload.option_c_text : null,
+      option_a_correct: attachChoices ? choicePayload.option_a_correct : 0,
+      option_b_correct: attachChoices ? choicePayload.option_b_correct : 0,
+      option_c_correct: attachChoices ? choicePayload.option_c_correct : 0,
+      option_a_delta: attachChoices ? choicePayload.option_a_delta : 0,
+      option_b_delta: attachChoices ? choicePayload.option_b_delta : 0,
+      option_c_delta: attachChoices ? choicePayload.option_c_delta : 0,
+      suspicion_penalty: attachChoices ? choicePayload.suspicion_penalty : 0,
+      context_notes: attachChoices ? choicePayload.context_notes : ''
+    };
+  });
 }
 
 function getDialogueSpeakerBlocksFromForm(prefix) {
@@ -116,8 +153,90 @@ function getDialogueSpeakerBlocksFromForm(prefix) {
   }));
 }
 
-function getPrimarySpeakerName(speakerBlocks, fallbackNpcName = 'NPC') {
-  return speakerBlocks.find(block => block.name)?.name?.trim() || fallbackNpcName;
+function getDialogueChoiceValues(prefix) {
+  const option_a_text = document.getElementById(`${prefix}-opta`)?.value?.trim() || '';
+  const option_b_text = document.getElementById(`${prefix}-optb`)?.value?.trim() || '';
+  const option_c_text = document.getElementById(`${prefix}-optc`)?.value?.trim() || null;
+
+  const correctOption = document.querySelector(`input[name="${prefix}-correct"]:checked`)?.value;
+  const option_a_correct = correctOption === 'a' ? 1 : 0;
+  const option_b_correct = correctOption === 'b' ? 1 : 0;
+  const option_c_correct = correctOption === 'c' ? 1 : 0;
+
+  const option_a_delta = parseInt(document.getElementById(`${prefix}-delta-a`)?.value, 10);
+  const option_b_delta = parseInt(document.getElementById(`${prefix}-delta-b`)?.value, 10);
+  const option_c_delta = parseInt(document.getElementById(`${prefix}-delta-c`)?.value, 10);
+
+  return {
+    option_a_text,
+    option_b_text,
+    option_c_text,
+    option_a_correct,
+    option_b_correct,
+    option_c_correct,
+    option_a_delta,
+    option_b_delta,
+    option_c_delta,
+    suspicion_penalty: Number.isFinite(option_b_delta) ? option_b_delta : 10,
+    context_notes: document.getElementById(`${prefix}-notes`)?.value?.trim() || ''
+  };
+}
+
+async function createDialogueRow(questId, payload, sequenceOrder) {
+  const isNarrationOnlyRow = !payload.option_a_text && !payload.option_b_text && !payload.option_c_text;
+  const createPayload = {
+    ...payload,
+    ...(sequenceOrder !== undefined ? { sequence_order: sequenceOrder } : {})
+  };
+
+  if (isNarrationOnlyRow) {
+    createPayload.option_a_text = ' ';
+    createPayload.option_b_text = ' ';
+  }
+
+  const result = await apiCall(`/quests/${questId}/dialogues`, {
+    method: 'POST',
+    body: JSON.stringify(createPayload)
+  });
+
+  if (isNarrationOnlyRow) {
+    await apiCall(`/quests/dialogues/${result.dialogueId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        option_a_text: '',
+        option_b_text: '',
+        option_c_text: null,
+        option_a_correct: 0,
+        option_b_correct: 0,
+        option_c_correct: 0,
+        option_a_delta: 0,
+        option_b_delta: 0,
+        option_c_delta: 0,
+        suspicion_penalty: 0,
+        context_notes: ''
+      })
+    });
+  }
+
+  return result;
+}
+
+async function shiftDialogueSequenceOrders(questId, startingSequence, delta) {
+  if (!delta) return;
+
+  const data = await apiCall(`/quests/${questId}/dialogues`);
+  const laterDialogues = (data.dialogues || [])
+    .filter(dlg => dlg.sequence_order > startingSequence)
+    .sort((a, b) => delta > 0
+      ? b.sequence_order - a.sequence_order
+      : a.sequence_order - b.sequence_order);
+
+  for (const dialogue of laterDialogues) {
+    await apiCall(`/quests/dialogues/${dialogue.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ sequence_order: dialogue.sequence_order + delta })
+    });
+  }
 }
 
 function bindDialogueSpeakerControls(prefix) {
@@ -648,13 +767,16 @@ async function refreshDialogueList(questId) {
       const optionADelta = getDialogueDelta(dlg, 'a');
       const optionBDelta = getDialogueDelta(dlg, 'b');
       const optionCDelta = getDialogueDelta(dlg, 'c');
+      const hasChoices = dialogueHasChoices(dlg);
       const entry = document.createElement('div');
       entry.className = 'dlg-entry';
       entry.innerHTML = `
         <div class="dlg-entry-header">
           <span class="dlg-seq">#${dlg.sequence_order}</span>
           <span class="dlg-npc-name">${esc(dlg.npc_name)}</span>
-          <span class="dlg-penalty-badge">A ${formatDelta(optionADelta)} | B ${formatDelta(optionBDelta)} | C ${formatDelta(optionCDelta)}</span>
+          ${hasChoices
+            ? `<span class="dlg-penalty-badge">A ${formatDelta(optionADelta)} | B ${formatDelta(optionBDelta)} | C ${formatDelta(optionCDelta)}</span>`
+            : '<span class="dlg-penalty-badge">Narration</span>'}
           <div class="dlg-entry-actions">
             <button class="dlg-btn-edit" onclick="editDialogue(${dlg.id})" title="Edit">✎</button>
             <button class="dlg-btn-del" onclick="deleteDialogue(${dlg.id})" title="Delete">✕</button>
@@ -662,7 +784,7 @@ async function refreshDialogueList(questId) {
         </div>
         <div class="dlg-entry-body">
           <div class="dlg-npc-text">"${esc(dlg.npc_text)}"</div>
-          <div class="dlg-options">
+          ${hasChoices ? `<div class="dlg-options">
             <div class="dlg-option ${dlg.option_a_correct ? 'dlg-correct' : 'dlg-wrong'}">
               <span class="dlg-opt-label">A${dlg.option_a_correct ? ' ✓' : ' ✗'} (${formatDelta(optionADelta)})</span>
               ${esc(dlg.option_a_text)}
@@ -675,7 +797,7 @@ async function refreshDialogueList(questId) {
               <span class="dlg-opt-label">C${dlg.option_c_correct ? ' ✓' : ' ✗'} (${formatDelta(optionCDelta)})</span>
               ${esc(dlg.option_c_text)}
             </div>` : ''}
-          </div>
+          </div>` : ''}
           ${dlg.context_notes ? `<div class="dlg-notes">📝 ${esc(dlg.context_notes)}</div>` : ''}
         </div>
       `;
@@ -766,38 +888,18 @@ async function submitNewDialogue() {
 
   const narrationText = document.getElementById('dlg-f-narration')?.value?.trim() || '';
   const speakerBlocks = getDialogueSpeakerBlocksFromForm('dlg-f');
-  const npc_name = getPrimarySpeakerName(speakerBlocks);
-  const npc_text = buildDialogueTextFromBlocks(narrationText, speakerBlocks);
-  const option_a_text = document.getElementById('dlg-f-opta')?.value?.trim();
-  const option_b_text = document.getElementById('dlg-f-optb')?.value?.trim();
-  const option_c_text = document.getElementById('dlg-f-optc')?.value?.trim() || null;
+  const choicePayload = getDialogueChoiceValues('dlg-f');
+  const dialogueRows = buildDialogueRowsFromBlocks(narrationText, speakerBlocks, choicePayload);
 
-  // Radio button logic: only one correct answer
-  const correctOption = document.querySelector('input[name="dlg-f-correct"]:checked')?.value;
-  const option_a_correct = correctOption === 'a' ? 1 : 0;
-  const option_b_correct = correctOption === 'b' ? 1 : 0;
-  const option_c_correct = correctOption === 'c' ? 1 : 0;
-
-  const option_a_delta = parseInt(document.getElementById('dlg-f-delta-a')?.value, 10);
-  const option_b_delta = parseInt(document.getElementById('dlg-f-delta-b')?.value, 10);
-  const option_c_delta = parseInt(document.getElementById('dlg-f-delta-c')?.value, 10);
-  const suspicion_penalty = Number.isFinite(option_b_delta) ? option_b_delta : 10;
-  const context_notes = document.getElementById('dlg-f-notes')?.value?.trim() || '';
-
-  if (!npc_text || !option_a_text || !option_b_text) {
+  if (dialogueRows.length === 0 || !choicePayload.option_a_text || !choicePayload.option_b_text) {
     showT('Please fill in all required dialogue fields', 'error');
     return;
   }
 
   try {
-    await apiCall(`/quests/${currentEditQuest.id}/dialogues`, {
-      method: 'POST',
-      body: JSON.stringify({
-        npc_name, npc_text, option_a_text, option_b_text, option_c_text,
-        option_a_correct, option_b_correct, option_c_correct,
-        option_a_delta, option_b_delta, option_c_delta, suspicion_penalty, context_notes
-      })
-    });
+    for (const row of dialogueRows) {
+      await createDialogueRow(currentEditQuest.id, row);
+    }
 
     showT('Dialogue line created successfully', 'success');
     document.getElementById('dlg-new-form')?.remove();
@@ -895,40 +997,62 @@ async function editDialogue(dialogueId) {
 }
 
 async function submitEditDialogue(dialogueId) {
+  if (!currentEditQuest) return;
+
   const narrationText = document.getElementById('dlg-e-narration')?.value?.trim() || '';
   const speakerBlocks = getDialogueSpeakerBlocksFromForm('dlg-e');
-  const npc_name = getPrimarySpeakerName(speakerBlocks);
-  const npc_text = buildDialogueTextFromBlocks(narrationText, speakerBlocks);
-  const option_a_text = document.getElementById('dlg-e-opta')?.value?.trim();
-  const option_b_text = document.getElementById('dlg-e-optb')?.value?.trim();
-  const option_c_text = document.getElementById('dlg-e-optc')?.value?.trim() || null;
+  const choicePayload = getDialogueChoiceValues('dlg-e');
+  const dialogueRows = buildDialogueRowsFromBlocks(narrationText, speakerBlocks, choicePayload);
 
-  // Radio button logic: only one correct answer
-  const correctOption = document.querySelector('input[name="dlg-e-correct"]:checked')?.value;
-  const option_a_correct = correctOption === 'a' ? 1 : 0;
-  const option_b_correct = correctOption === 'b' ? 1 : 0;
-  const option_c_correct = correctOption === 'c' ? 1 : 0;
+  if (dialogueRows.length === 0) {
+    showT('Please fill in the dialogue text', 'error');
+    return;
+  }
 
-  const option_a_delta = parseInt(document.getElementById('dlg-e-delta-a')?.value, 10);
-  const option_b_delta = parseInt(document.getElementById('dlg-e-delta-b')?.value, 10);
-  const option_c_delta = parseInt(document.getElementById('dlg-e-delta-c')?.value, 10);
-  const suspicion_penalty = Number.isFinite(option_b_delta) ? option_b_delta : 10;
-  const context_notes = document.getElementById('dlg-e-notes')?.value?.trim() || '';
+  const choicesWereEntered = Boolean(
+    choicePayload.option_a_text ||
+    choicePayload.option_b_text ||
+    choicePayload.option_c_text
+  );
 
-  if (!npc_text || !option_a_text || !option_b_text) {
+  if (choicesWereEntered && (!choicePayload.option_a_text || !choicePayload.option_b_text)) {
     showT('Please fill in the dialogue text and required player choices', 'error');
     return;
   }
 
   try {
+    const data = await apiCall(`/quests/${currentEditQuest.id}/dialogues`);
+    const existingDialogue = (data.dialogues || []).find(dlg => dlg.id === dialogueId);
+    if (!existingDialogue) {
+      showT('Dialogue not found', 'error');
+      return;
+    }
+
+    if (dialogueHasChoices(existingDialogue) && (!choicePayload.option_a_text || !choicePayload.option_b_text)) {
+      showT('Please keep Option A and Option B filled for choice dialogue rows', 'error');
+      return;
+    }
+
+    const additionalRows = dialogueRows.length - 1;
+    if (additionalRows > 0) {
+      await shiftDialogueSequenceOrders(currentEditQuest.id, existingDialogue.sequence_order, additionalRows);
+    }
+
     await apiCall(`/quests/dialogues/${dialogueId}`, {
       method: 'PUT',
       body: JSON.stringify({
-        npc_name, npc_text, option_a_text, option_b_text, option_c_text,
-        option_a_correct, option_b_correct, option_c_correct,
-        option_a_delta, option_b_delta, option_c_delta, suspicion_penalty, context_notes
+        ...dialogueRows[0],
+        sequence_order: existingDialogue.sequence_order
       })
     });
+
+    for (let index = 1; index < dialogueRows.length; index += 1) {
+      await createDialogueRow(
+        currentEditQuest.id,
+        dialogueRows[index],
+        existingDialogue.sequence_order + index
+      );
+    }
 
     showT('Dialogue updated successfully', 'success');
     document.getElementById('dlg-edit-form')?.remove();
