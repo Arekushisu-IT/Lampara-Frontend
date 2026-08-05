@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LAMPARA — Player Registration</title>
+  <link rel="icon" type="image/png" href="assets/images/Lampara_logo.png">
   <meta name="description" content="Register your Lampara account to begin your journey through El Filibusterismo.">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -250,11 +251,9 @@
   </div>
 </div>
 
+<script src="src/core/config.js"></script>
 <script>
-  // ⚠ API URL source of truth: src/config.js (API_CONFIG.baseUrl)
-  // This standalone page duplicates it for self-containment.
-  // If you change the backend URL, update it here too.
-  const API_BASE = 'https://lampara-production.up.railway.app/api';
+  const API_BASE = API_CONFIG.baseUrl;
 
   // Particles
   const pWrap = document.getElementById('particles');

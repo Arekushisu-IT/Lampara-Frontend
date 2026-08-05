@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LAMPARA — Admin Panel</title>
+  <link rel="icon" type="image/png" href="assets/images/Lampara_logo.png">
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
@@ -328,22 +329,33 @@
           </div>
           <div style="display:grid;grid-template-columns:280px 1fr;gap:1rem;margin-top:1rem;">
             <!-- LEFT: Doughnut Chart -->
-            <div style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;display:flex;flex-direction:column;align-items:center;">
-              <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);margin-bottom:1rem;text-align:center;width:100%;">TOTAL QUEST ATTEMPTS OVERVIEW</div>
+            <div
+              style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;display:flex;flex-direction:column;align-items:center;">
+              <div
+                style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);margin-bottom:1rem;text-align:center;width:100%;">
+                TOTAL QUEST ATTEMPTS OVERVIEW</div>
               <div style="position:relative;width:200px;height:200px;">
                 <canvas id="qs-doughnut"></canvas>
               </div>
               <div style="display:flex;gap:1rem;margin-top:1.25rem;">
-                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span style="width:10px;height:10px;border-radius:2px;background:#4a9e5c;display:inline-block;"></span>Completed</span>
-                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span style="width:10px;height:10px;border-radius:2px;background:#c0392b;display:inline-block;"></span>Failed</span>
-                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span style="width:10px;height:10px;border-radius:2px;background:#e8b84b;display:inline-block;"></span>In Progress</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span
+                    style="width:10px;height:10px;border-radius:2px;background:#4a9e5c;display:inline-block;"></span>Completed</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span
+                    style="width:10px;height:10px;border-radius:2px;background:#c0392b;display:inline-block;"></span>Failed</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span
+                    style="width:10px;height:10px;border-radius:2px;background:#e8b84b;display:inline-block;"></span>In
+                  Progress</span>
               </div>
             </div>
             <!-- RIGHT: Horizontal Bar Chart -->
-            <div style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;">
+            <div
+              style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                <div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);">TOP 5 MOST FAILED QUESTS</div>
-                <button class="fb active" onclick="fetchAndRenderQuestStats()" style="font-size:9px;padding:3px 10px;letter-spacing:2px;">REFRESH</button>
+                <div
+                  style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);">
+                  TOP 5 MOST FAILED QUESTS</div>
+                <button class="fb active" onclick="fetchAndRenderQuestStats()"
+                  style="font-size:9px;padding:3px 10px;letter-spacing:2px;">REFRESH</button>
               </div>
               <div style="position:relative;width:100%;height:250px;">
                 <canvas id="qs-bar"></canvas>
@@ -454,10 +466,12 @@
           <div class="shdr">
             <h2>EL FILIBUSTERISMO — CHAPTER QUESTS</h2>
             <div class="orn"></div><span class="chap-stat-lbl" id="stat-qt-chap">0 ACTIVE · 0 STANDBY</span>
-            <button class="fb" onclick="importDialogues()" style="margin-left:auto;font-size:9px;padding:3px 10px;letter-spacing:2px;">IMPORT DIALOGUES</button>
+            <button class="fb" onclick="importDialogues()"
+              style="margin-left:auto;font-size:9px;padding:3px 10px;letter-spacing:2px;">IMPORT DIALOGUES</button>
           </div>
 
-          <div class="toast" id="import-toast" style="display:none;position:fixed;bottom:20px;right:20px;padding:12px 20px;background:#1A1511;border:1px solid rgba(201,149,58,0.3);border-radius:6px;z-index:9999;font-family:'JetBrains Mono',monospace;font-size:12px;color:#f0d090;">
+          <div class="toast" id="import-toast"
+            style="display:none;position:fixed;bottom:20px;right:20px;padding:12px 20px;background:#1A1511;border:1px solid rgba(201,149,58,0.3);border-radius:6px;z-index:9999;font-family:'JetBrains Mono',monospace;font-size:12px;color:#f0d090;">
             <span id="import-toast-msg"></span>
           </div>
 

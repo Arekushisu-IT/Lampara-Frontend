@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LAMPARA — Player Portal</title>
+  <link rel="icon" type="image/png" href="assets/images/Lampara_logo.png">
   <meta name="description" content="View your quest progression and profile in the Lampara archive.">
   <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -1216,10 +1217,9 @@
     </div>
   </div>
 
+  <script src="src/core/config.js"></script>
   <script>
-    // ⚠ API URL source of truth: src/config.js (API_CONFIG.baseUrl)
-    // This standalone page duplicates it for self-containment.
-    const API_BASE = 'https://lampara-production.up.railway.app/api';
+    const API_BASE = API_CONFIG.baseUrl;
     let playerToken = localStorage.getItem('lampara_player_token');
     let playerData = null;
     let feedOffset = 0;
