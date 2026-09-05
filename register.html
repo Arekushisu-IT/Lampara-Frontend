@@ -74,6 +74,26 @@
     .field input { width: 100%; background: var(--bgc); border: 1px solid var(--bdr); border-radius: 5px; padding: 11px 12px; color: var(--tp); font-family: 'Crimson Text', serif; font-size: 14px; outline: none; transition: all .3s; }
     .field input:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(201,149,58,.15); }
     .field input::placeholder { color: var(--td); opacity: .6; }
+
+    /* Date Input & Calendar Picker Icon */
+    input[type="date"] {
+      color-scheme: dark;
+      cursor: pointer;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      filter: invert(0.85) sepia(60%) saturate(1000%) hue-rotate(5deg);
+      opacity: 0.9;
+      padding: 4px;
+      margin-right: -2px;
+      transition: filter 0.2s, opacity 0.2s, transform 0.15s;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      filter: invert(0.95) sepia(90%) saturate(1500%) hue-rotate(5deg);
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
     .field-hint { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--td); margin-top: 3px; }
     .field-hint.ok { color: #6dba85; }
     .field-hint.err { color: #e06060; }
@@ -286,6 +306,16 @@
       }
     });
   });
+
+  // Calendar picker helper: clicking anywhere on birthdate input opens picker
+  const bdateInput = document.getElementById('r-birthdate');
+  if (bdateInput) {
+    bdateInput.addEventListener('click', function () {
+      if (typeof this.showPicker === 'function') {
+        try { this.showPicker(); } catch (_) {}
+      }
+    });
+  }
 
   // Password validation
   const pwInput = document.getElementById('r-password');
