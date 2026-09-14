@@ -468,8 +468,8 @@
 
         <div class="panel" id="panel-qt">
           <div class="shdr">
-            <h2>EL FILIBUSTERISMO — CHAPTER QUESTS</h2>
-            <div class="orn"></div><span class="chap-stat-lbl" id="stat-qt-chap">0 ACTIVE · 0 STANDBY</span>
+            <h2>EL FILIBUSTERISMO — QUEST HIERARCHY</h2>
+            <div class="orn"></div><span class="chap-stat-lbl" id="stat-qt-chap"></span>
             <button class="fb" onclick="importDialogues()"
               style="margin-left:auto;font-size:9px;padding:3px 10px;letter-spacing:2px;">IMPORT DIALOGUES</button>
           </div>
@@ -479,19 +479,42 @@
             <span id="import-toast-msg"></span>
           </div>
 
-          <!-- Main Quest Navigation Tabs -->
-          <div class="chapter-tabs" id="chapter-tabs">
-            <button class="chapter-tab active" data-mq="1">MQ 1</button>
-            <button class="chapter-tab" data-mq="2">MQ 2</button>
-            <button class="chapter-tab" data-mq="3">MQ 3</button>
-            <button class="chapter-tab" data-mq="4">MQ 4</button>
-            <button class="chapter-tab" data-mq="5">MQ 5</button>
-            <button class="chapter-tab" data-mq="6">MQ 6</button>
-            <button class="chapter-tab" data-mq="7">MQ 7</button>
-          </div>
-
-          <div class="cgrid" id="quests-grid">
-            <!-- JavaScript will inject the 7 Quest cards here -->
+          <!-- Quest hierarchy: sub-quests at the bottom join upward to Main Quest 7 (rendered by quests.js) -->
+          <div class="qh-wrap" id="qh-wrap">
+            <div class="qh-stage" id="qh-stage">
+              <div class="qh-summary" id="qh-summary" aria-live="polite"></div>
+              <div class="qh-scroll">
+                <svg id="qh-svg" class="qh-svg" viewBox="0 0 1100 590" role="group"
+                  aria-label="Quest hierarchy: sub-quests at the bottom join upward to Main Quest 7">
+                  <defs>
+                    <marker id="qh-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                      <path d="M2 1L8 5L2 9" fill="none" stroke="#7a5820" stroke-width="1.6" />
+                    </marker>
+                    <marker id="qh-arrow-lit" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                      <path d="M2 1L8 5L2 9" fill="none" stroke="#e8b84b" stroke-width="1.8" />
+                    </marker>
+                    <radialGradient id="qh-glow">
+                      <stop offset="0%" stop-color="#e8b84b" stop-opacity="0.30" />
+                      <stop offset="55%" stop-color="#c9953a" stop-opacity="0.08" />
+                      <stop offset="100%" stop-color="#c9953a" stop-opacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <circle id="qh-lamp" class="qh-lamp" cx="550" cy="300" r="120" fill="url(#qh-glow)" />
+                  <g id="qh-edges"></g>
+                  <g id="qh-nodes"></g>
+                </svg>
+              </div>
+              <div class="qh-legend">
+                <span><i class="qh-key"></i>Sub-quest</span>
+                <span><i class="qh-key qh-key-mq"></i>Main quest</span>
+                <span><i class="qh-key qh-key-players"></i>Players on it now</span>
+                <span class="qh-legend-hint">Click a box for details</span>
+              </div>
+            </div>
+            <div class="qh-veil" id="qh-veil" onclick="closeQuestDetails()"></div>
+            <div class="qh-box" id="qh-box" role="dialog" aria-modal="true" aria-labelledby="qh-box-title" aria-hidden="true">
+              <div class="qh-face" id="qh-face"></div>
+            </div>
           </div>
         </div>
 

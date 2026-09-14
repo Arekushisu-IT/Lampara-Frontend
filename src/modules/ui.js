@@ -48,21 +48,28 @@ function sp(id, el) {
 }
 
 /* TOPBAR SEARCH
-   Filters what the active panel shows: table rows and quest cards whose text contains
-   the term. Renderers call applyTopbarSearch() after redrawing, so a refresh keeps the
+   Filters what the active panel shows: table rows whose text contains the term are kept,
+   the rest hidden. Quest hierarchy boxes are dimmed instead of hidden, so the tree keeps
+   its shape. Renderers call applyTopbarSearch() after redrawing, so a refresh keeps the
    filter. Escape clears it. */
 let topbarSearchTerm = '';
 
 function applyTopbarSearch() {
   document.querySelectorAll('.search-miss').forEach(el => el.classList.remove('search-miss'));
+  document.querySelectorAll('.qh-dim').forEach(el => el.classList.remove('qh-dim'));
   if (!topbarSearchTerm) return;
 
   const panel = document.querySelector('.panel.active');
   if (!panel) return;
 
-  panel.querySelectorAll('tbody tr, .cc').forEach(el => {
+  panel.querySelectorAll('tbody tr').forEach(el => {
     if (el.querySelector('td[colspan]')) return; // loading / empty placeholder rows
     if (!el.textContent.toLowerCase().includes(topbarSearchTerm)) el.classList.add('search-miss');
+  });
+
+  panel.querySelectorAll('.qh-node').forEach(el => {
+    const text = el.getAttribute('data-search') || el.textContent.toLowerCase();
+    if (!text.includes(topbarSearchTerm)) el.classList.add('qh-dim');
   });
 }
 

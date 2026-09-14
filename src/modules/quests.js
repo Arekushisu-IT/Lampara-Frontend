@@ -2,7 +2,6 @@
 // QUESTS - Dynamic Quest Management
 // ============================================================
 
-let currentMainQuest = 1;
 let allQuests = [];
 let currentEditQuest = null; // Track which sub-quest's dialogues are being edited
 
@@ -316,7 +315,14 @@ function removeDialogueSpeakerBlock(prefix, index) {
   renderDialogueSpeakerBlocks(prefix, blocks);
 }
 
-// Main Quest names for tab tooltips
+// ============================================================
+// QUEST HIERARCHY
+// A bottom-up tree of the designed quest structure, like the game's questing plan:
+// the sub-quests of Main Quests 1-4 join into their main quests, MQ1+MQ2 lead into
+// MQ5 SQ1 and MQ3+MQ4 into MQ5 SQ2, both lead into MQ6, and MQ6 into MQ7.
+// ============================================================
+
+// Main quest names, shown on the main quest boxes and in the details box
 const MQ_NAMES = {
   1: 'The Mask of Simoun',
   2: 'Power and Education',
@@ -327,146 +333,526 @@ const MQ_NAMES = {
   7: 'Final Boss'
 };
 
-// Initialize Main Quest tab listeners
-function initChapterTabs() {
-  const tabs = document.querySelectorAll('.chapter-tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const mq = parseInt(tab.dataset.mq);
-      switchMainQuest(mq);
+// Designed sub-quests per main quest (20 in total). The tree is laid out from this, so a
+// sub-quest missing from the database still gets a dashed box instead of shifting the tree.
+const QUEST_DESIGN = { 1: 4, 2: 4, 3: 4, 4: 4, 5: 2, 6: 1, 7: 1 };
+
+let questStatsByKey = {};        // "mq-sq" -> { completed, game_overs }
+let questStatsLoaded = false;
+const questDialogueCounts = {};  // quest id -> dialogue line count, loaded when a box opens
+let qhNodes = {};                // node id -> layout + element
+let qhParents = {};              // node id -> parent node id
+let qhEdges = {};                // node id -> path to its parent
+let qhUps = {};                  // parent node id -> arrow segment into it
+let qhSelected = null;           // node id shown in the details box
+let qhReturnFocus = null;
+
+const QH_SVG_NS = 'http://www.w3.org/2000/svg';
+const qhKey = (mq, sq) => `${mq}-${sq}`;
+
+function questFor(mq, sq) {
+  return allQuests.find(q => q.main_quest === mq && q.sub_quest === sq) || null;
+}
+
+function isQuestActive(q) {
+  return !!q && (q.status === 'active' || q.status === 'completed');
+}
+
+function chapterRangeText(start, end) {
+  if (start == null) return '—';
+  return (end == null || end === start) ? `${start}` : `${start}–${end}`;
+}
+
+function qhMainQuestRange(mq) {
+  const rows = allQuests.filter(q => q.main_quest === mq && q.chapter_start != null);
+  if (rows.length === 0) return '—';
+  const start = Math.min(...rows.map(q => q.chapter_start));
+  const end = Math.max(...rows.map(q => (q.chapter_end == null ? q.chapter_start : q.chapter_end)));
+  return chapterRangeText(start, end);
+}
+
+function qhSvg(tag, attrs, parent) {
+  const el = document.createElementNS(QH_SVG_NS, tag);
+  Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+function qhTruncate(text, max) {
+  const s = String(text || '');
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+// Splits items into `parts` consecutive groups (4 main quests into 2 -> [2, 2]).
+function qhChunk(items, parts) {
+  const size = Math.ceil(items.length / parts);
+  return Array.from({ length: parts }, (_, i) => items.slice(i * size, (i + 1) * size));
+}
+
+function renderQuestSummary() {
+  const el = document.getElementById('qh-summary');
+  const designedTotal = Object.values(QUEST_DESIGN).reduce((a, b) => a + b, 0);
+  let active = 0, artifacts = 0;
+  Object.entries(QUEST_DESIGN).forEach(([mq, count]) => {
+    for (let sq = 1; sq <= count; sq++) {
+      const q = questFor(Number(mq), sq);
+      if (isQuestActive(q)) active++;
+      if (q && q.artifact_name && Number(q.artifacts_total) > 0) artifacts++;
+    }
+  });
+  const players = allQuests.reduce((s, q) => s + toStatNumber(q.player_count), 0);
+
+  if (el) {
+    el.innerHTML = `
+      <span class="qh-sum-chip"><b>${active}/${designedTotal}</b> sub-quests active</span>
+      <span class="qh-sum-chip"><b>${artifacts}/${designedTotal}</b> artifacts set</span>
+      <span class="qh-sum-chip"><b>${players}</b> players inside quests</span>
+      <span class="qh-sum-chip"><b>39</b> chapters</span>`;
+  }
+  const lbl = document.getElementById('stat-qt-chap');
+  if (lbl) lbl.textContent = `${active}/${designedTotal} ACTIVE · CH. 1–39`;
+}
+
+function renderQuestHierarchy() {
+  const edgesG = document.getElementById('qh-edges');
+  const nodesG = document.getElementById('qh-nodes');
+  if (!edgesG || !nodesG) return;
+  edgesG.textContent = '';
+  nodesG.textContent = '';
+  qhNodes = {}; qhParents = {}; qhEdges = {}; qhUps = {};
+
+  renderQuestSummary();
+
+  const VIEW_W = 1100;
+  const SIZE = { leaf: [52, 46], mq: [212, 66], upper: [290, 66], top: [290, 72] };
+  const Y = { leaf: 530, mq: 408, upper: [292, 178], top: 62 };
+  const all = [];
+  const make = (id, kind, mq, sq, y, children = []) => {
+    const n = { id, kind, mq, sq, x: 0, y, w: SIZE[kind][0], h: SIZE[kind][1], children };
+    children.forEach(c => { qhParents[c.id] = id; });
+    all.push(n);
+    return n;
+  };
+  const avgX = nodes => nodes.reduce((s, n) => s + n.x, 0) / nodes.length;
+
+  // Bottom two levels: the sub-quests of MQ1-4 and their main quest boxes.
+  const leaves = [];
+  let below = [1, 2, 3, 4].map((mq, g) => {
+    const kids = [];
+    for (let sq = 1; sq <= QUEST_DESIGN[mq]; sq++) {
+      const leaf = make(`q-${mq}-${sq}`, 'leaf', mq, sq, Y.leaf);
+      leaf.x = leaves.length * 61 + g * 28;
+      leaves.push(leaf);
+      kids.push(leaf);
+    }
+    return make(`mq-${mq}`, 'mq', mq, null, Y.mq, kids);
+  });
+  const shift = (VIEW_W - (leaves[leaves.length - 1].x - leaves[0].x)) / 2 - leaves[0].x;
+  leaves.forEach(n => { n.x += shift; });
+  below.forEach(n => { n.x = avgX(n.children); });
+
+  // Upper levels: each sub-quest of MQ5, MQ6 and MQ7 joins an equal share of the level below.
+  [5, 6, 7].forEach((mq, i, list) => {
+    const kind = i === list.length - 1 ? 'top' : 'upper';
+    const y = kind === 'top' ? Y.top : Y.upper[i];
+    below = qhChunk(below, QUEST_DESIGN[mq]).map((kids, k) => {
+      const n = make(`q-${mq}-${k + 1}`, kind, mq, k + 1, y, kids);
+      n.x = avgX(kids);
+      return n;
+    });
+  });
+
+  // Connectors: child up to a shared middle line, across to the parent, then an arrow up.
+  all.forEach(p => {
+    if (!p.children.length) return;
+    const pBottom = p.y + p.h / 2;
+    const childTop = Math.min(...p.children.map(c => c.y - c.h / 2));
+    const midY = Math.round((pBottom + childTop) / 2);
+    p.children.forEach(c => {
+      qhEdges[c.id] = qhSvg('path', { class: 'qh-edge', d: `M${c.x} ${c.y - c.h / 2}V${midY}H${p.x}` }, edgesG);
+    });
+    qhUps[p.id] = qhSvg('path', { class: 'qh-edge', d: `M${p.x} ${midY}V${pBottom + 3}`, 'marker-end': 'url(#qh-arrow)' }, edgesG);
+  });
+
+  all.forEach(n => qhDrawNode(n, nodesG));
+
+  if (qhSelected && qhNodes[qhSelected]) qhLight(qhSelected);
+  else qhLight(null);
+  if (typeof applyTopbarSearch === 'function') applyTopbarSearch();
+}
+
+function qhDrawNode(n, layer) {
+  const isMain = n.kind === 'mq';
+  const q = isMain ? null : questFor(n.mq, n.sq);
+  const mqRows = isMain ? allQuests.filter(r => r.main_quest === n.mq) : [];
+  const missing = !isMain && !q;
+  const inactive = !isMain && q && !isQuestActive(q);
+  const players = isMain
+    ? mqRows.reduce((s, r) => s + toStatNumber(r.player_count), 0)
+    : (q ? toStatNumber(q.player_count) : 0);
+  const chapters = isMain ? qhMainQuestRange(n.mq) : (q ? chapterRangeText(q.chapter_start, q.chapter_end) : '—');
+  const title = isMain ? (MQ_NAMES[n.mq] || `Main Quest ${n.mq}`) : (q ? (q.title || 'Untitled sub-quest') : 'Not in database');
+  const label = isMain ? `Main Quest ${n.mq}` : `Main Quest ${n.mq} sub-quest ${n.sq}`;
+
+  const cls = ['qh-node', `qh-${n.kind}`];
+  if (missing) cls.push('qh-missing');
+  if (inactive) cls.push('qh-inactive');
+
+  const g = qhSvg('g', {
+    class: cls.join(' '),
+    tabindex: 0,
+    role: 'button',
+    'aria-label': `${label}: ${title}, chapters ${chapters}${players ? `, ${players} players on it now` : ''}`,
+    'data-search': [label, `MQ${n.mq}`, n.sq ? `SQ${n.sq}` : '', title, q ? q.artifact_name : '', `Ch. ${chapters}`, MQ_NAMES[n.mq]]
+      .filter(Boolean).join(' ').toLowerCase()
+  }, layer);
+  qhSvg('title', {}, g).textContent = `${isMain ? `Main Quest ${n.mq}` : `MQ${n.mq} · SQ${n.sq}`} · ${title} · Ch. ${chapters}`;
+  qhSvg('rect', { x: n.x - n.w / 2, y: n.y - n.h / 2, width: n.w, height: n.h, rx: n.kind === 'leaf' ? 4 : 6 }, g);
+
+  const text = (className, y, value) => {
+    qhSvg('text', { class: className, x: n.x, y, 'text-anchor': 'middle' }, g).textContent = value;
+  };
+  if (n.kind === 'leaf') {
+    text('qh-t-code', n.y - 3, `SQ${n.sq}`);
+    text('qh-t-sub', n.y + 13, chapters);
+  } else {
+    let eyebrow = `MAIN QUEST ${n.mq}`;
+    if (!isMain && QUEST_DESIGN[n.mq] > 1) eyebrow += ` · SQ${n.sq}`;
+    if (n.kind === 'top') eyebrow += ' · FINAL';
+    text('qh-t-eyebrow', n.y - n.h / 2 + 17, eyebrow);
+    text('qh-t-title', n.y + 5, qhTruncate(title, Math.floor(n.w / 7.6)));
+    text('qh-t-sub', n.y + n.h / 2 - 10, `Ch. ${chapters}`);
+  }
+
+  if (players > 0) {
+    const bx = n.x + n.w / 2 - 2, by = n.y - n.h / 2 + 2;
+    qhSvg('circle', { class: 'qh-badge', cx: bx, cy: by, r: 9 }, g);
+    qhSvg('text', { class: 'qh-badge-t', x: bx, y: by + 3.5, 'text-anchor': 'middle' }, g).textContent = players > 99 ? '99+' : String(players);
+  }
+
+  g.addEventListener('click', () => openQuestNode(n.id));
+  g.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openQuestNode(n.id); }
+  });
+  qhNodes[n.id] = { ...n, el: g };
+}
+
+// Lights the selected box and its path up to Main Quest 7; `null` clears it.
+function qhLight(id) {
+  const svg = document.getElementById('qh-svg');
+  if (!svg) return;
+  svg.querySelectorAll('.lit, .qh-selected').forEach(el => el.classList.remove('lit', 'qh-selected'));
+  Object.values(qhUps).forEach(p => p.setAttribute('marker-end', 'url(#qh-arrow)'));
+  const lamp = document.getElementById('qh-lamp');
+  const node = id ? qhNodes[id] : null;
+  if (!node) { if (lamp) lamp.classList.remove('on'); return; }
+
+  node.el.classList.add('lit', 'qh-selected');
+  if (lamp) {
+    lamp.setAttribute('cx', node.x);
+    lamp.setAttribute('cy', node.y);
+    lamp.setAttribute('r', Math.max(node.w * 0.75, 90));
+    lamp.classList.add('on');
+  }
+  let cur = id;
+  while (qhParents[cur]) {
+    const parent = qhParents[cur];
+    if (qhEdges[cur]) qhEdges[cur].classList.add('lit');
+    if (qhUps[parent]) {
+      qhUps[parent].classList.add('lit');
+      qhUps[parent].setAttribute('marker-end', 'url(#qh-arrow-lit)');
+    }
+    if (qhNodes[parent]) qhNodes[parent].el.classList.add('lit');
+    cur = parent;
+  }
+}
+
+// ---------------------------------------------------------------- details box
+
+function qhBoxOpen() {
+  const wrap = document.getElementById('qh-wrap');
+  return !!wrap && wrap.classList.contains('qh-open');
+}
+
+// Centers the (fixed) box over the content area, not the whole window, so it sits over
+// the hierarchy rather than half behind the sidebar.
+function qhPlaceBox() {
+  const box = document.getElementById('qh-box');
+  const area = document.querySelector('.content') || document.body;
+  if (!box) return;
+  const r = area.getBoundingClientRect();
+  box.style.setProperty('--qh-cx', `${Math.round(r.left + r.width / 2)}px`);
+  box.style.setProperty('--qh-cy', `${Math.round(r.top + r.height / 2)}px`);
+}
+
+function qhFocusFirst() {
+  const box = document.getElementById('qh-box');
+  if (!box) return;
+  const target = box.querySelector('input') || box.querySelector('.qh-actions button, .qh-sq-item') || box.querySelector('button');
+  if (target) target.focus({ preventScroll: true });
+}
+
+// Shows `html` in the box: opens it with the scale-in animation, or cross-fades the face
+// when it is already open. `after` runs once the new content is in place.
+function qhShowFace(html, after) {
+  const wrap = document.getElementById('qh-wrap');
+  const box = document.getElementById('qh-box');
+  const face = document.getElementById('qh-face');
+  if (!wrap || !box || !face) return;
+
+  const fill = () => {
+    face.innerHTML = html;
+    if (typeof after === 'function') after();
+  };
+
+  if (!qhBoxOpen()) {
+    qhReturnFocus = document.activeElement;
+    qhPlaceBox();
+    fill();
+    box.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+      wrap.classList.add('qh-open');
+      setTimeout(qhFocusFirst, 60);
+    });
+  } else {
+    face.classList.add('qh-swap');
+    setTimeout(() => {
+      fill();
+      face.classList.remove('qh-swap');
+      qhFocusFirst();
+    }, 170);
+  }
+}
+
+function closeQuestDetails() {
+  const wrap = document.getElementById('qh-wrap');
+  const box = document.getElementById('qh-box');
+  if (!wrap || !qhBoxOpen()) return;
+  wrap.classList.remove('qh-open', 'qh-editing');
+  if (box) box.setAttribute('aria-hidden', 'true');
+  const returnTo = (qhSelected && qhNodes[qhSelected]) ? qhNodes[qhSelected].el : qhReturnFocus;
+  qhSelected = null;
+  qhLight(null);
+  if (returnTo && typeof returnTo.focus === 'function') returnTo.focus({ preventScroll: true });
+}
+
+function openQuestNode(id) {
+  const node = qhNodes[id];
+  if (!node) return;
+  const wrap = document.getElementById('qh-wrap');
+  if (wrap) wrap.classList.remove('qh-editing');
+  qhSelected = id;
+  qhLight(id);
+  if (node.kind === 'mq') openMainQuestDetails(node.mq);
+  else openQuestDetails(node.mq, node.sq);
+}
+
+function qhHead(eyebrow, title, right) {
+  return `
+    <div class="qh-box-head">
+      <div>
+        <div class="qh-eyebrow">${esc(eyebrow)}</div>
+        <h3 class="qh-box-title" id="qh-box-title">${esc(title)}</h3>
+      </div>
+      <div class="qh-box-tools">
+        ${right}
+        <button type="button" class="qh-x" aria-label="Close details" onclick="closeQuestDetails()">✕</button>
+      </div>
+    </div>`;
+}
+
+function qhStat(value, label, tone) {
+  return `<div class="qh-stat"><div class="qh-stat-v ${tone || ''}">${esc(String(value))}</div><div class="qh-stat-l">${label}</div></div>`;
+}
+
+function qhDialogueChip(questId) {
+  const count = questDialogueCounts[questId];
+  if (count == null) return `<span class="qh-chip" id="qh-dlg-count" data-quest="${questId}">Counting dialogue lines…</span>`;
+  return `<span class="qh-chip${count === 0 ? ' warn' : ''}" id="qh-dlg-count" data-quest="${questId}">${count} dialogue line${count === 1 ? '' : 's'}</span>`;
+}
+
+async function qhLoadDialogueCount(questId) {
+  if (questDialogueCounts[questId] == null) {
+    try {
+      const data = await apiCall(`/quests/${questId}/dialogues`);
+      questDialogueCounts[questId] = (data.dialogues || []).length;
+    } catch (err) {
+      const chip = document.getElementById('qh-dlg-count');
+      if (chip && Number(chip.dataset.quest) === questId) chip.textContent = 'Dialogue lines unavailable';
+      return;
+    }
+  }
+  const chip = document.getElementById('qh-dlg-count');
+  if (chip && Number(chip.dataset.quest) === questId) chip.outerHTML = qhDialogueChip(questId);
+}
+
+function openQuestDetails(mq, sq) {
+  const q = questFor(mq, sq);
+  const range = q ? chapterRangeText(q.chapter_start, q.chapter_end) : '—';
+  const eyebrow = `MAIN QUEST ${mq} · SQ${sq} · CH. ${range}`;
+
+  if (!q) {
+    qhShowFace(`${qhHead(eyebrow, 'Not in database', '')}
+      <p class="qh-desc">This designed sub-quest has no row in the quests table, so the game cannot load its dialogue or artifact.</p>`);
+    return;
+  }
+
+  const stats = questStatsByKey[qhKey(mq, sq)] || { completed: 0, game_overs: 0 };
+  const here = toStatNumber(q.player_count);
+  const active = isQuestActive(q);
+
+  qhShowFace(`
+    ${qhHead(eyebrow, q.title || 'Untitled sub-quest', `<span class="pill ${active ? 'pa' : 'pp'}">${esc(String(q.status || 'inactive').toUpperCase())}</span>`)}
+    <p class="qh-desc">${esc(q.description || 'No description yet.')}</p>
+    <div class="qh-chips">
+      <span class="qh-chip">◈ ${esc(q.artifact_name || 'No artifact')}</span>
+      ${qhDialogueChip(q.id)}
+      <span class="qh-chip">${esc(MQ_NAMES[mq] || `Main Quest ${mq}`)}</span>
+    </div>
+    <div class="qh-stats">
+      ${qhStat(here, 'HERE NOW', here > 0 ? 'ok' : '')}
+      ${qhStat(questStatsLoaded ? stats.completed : '—', 'COMPLETED', '')}
+      ${qhStat(questStatsLoaded ? stats.game_overs : '—', 'GAME-OVERS', questStatsLoaded ? (stats.game_overs > 0 ? 'warn' : 'ok') : '')}
+    </div>
+    <div class="qh-actions">
+      <button type="button" class="qh-btn" onclick="qhOpenDialogues(${q.id})">✎ DIALOGUES</button>
+      <button type="button" class="qh-btn qh-btn-quiet" onclick="openChapterEditor(${q.id})">EDIT CHAPTERS</button>
+    </div>`, () => qhLoadDialogueCount(q.id));
+}
+
+function openMainQuestDetails(mq) {
+  const designed = QUEST_DESIGN[mq] || 0;
+  const rows = [];
+  for (let sq = 1; sq <= designed; sq++) rows.push({ sq, q: questFor(mq, sq) });
+  const present = rows.filter(r => r.q).map(r => r.q);
+  const activeN = present.filter(isQuestActive).length;
+  const here = present.reduce((s, q) => s + toStatNumber(q.player_count), 0);
+  const completions = present.reduce((s, q) => s + ((questStatsByKey[qhKey(mq, q.sub_quest)] || {}).completed || 0), 0);
+  const artifacts = present.filter(q => q.artifact_name && Number(q.artifacts_total) > 0).length;
+
+  const list = rows.map(({ sq, q }) => {
+    const range = q ? chapterRangeText(q.chapter_start, q.chapter_end) : '—';
+    const players = q ? toStatNumber(q.player_count) : 0;
+    return `
+      <button type="button" class="qh-sq-item${q ? '' : ' missing'}" onclick="openQuestNode('q-${mq}-${sq}')">
+        <span><span class="qh-sq-code">SQ${sq}</span> <span class="qh-sq-ch">Ch. ${range}</span> ${esc(q ? (q.title || 'Untitled sub-quest') : 'Not in database')}</span>
+        <span class="qh-sq-meta">${players ? `${players} here` : ''} ›</span>
+      </button>`;
+  }).join('');
+
+  qhShowFace(`
+    ${qhHead(`MAIN QUEST ${mq} · CH. ${qhMainQuestRange(mq)}`, MQ_NAMES[mq] || `Main Quest ${mq}`, `<span class="pill ${activeN === designed ? 'pa' : 'pp'}">${activeN}/${designed} ACTIVE</span>`)}
+    <div class="qh-stats">
+      ${qhStat(here, 'PLAYERS HERE', here > 0 ? 'ok' : '')}
+      ${qhStat(questStatsLoaded ? completions : '—', 'COMPLETIONS', '')}
+      ${qhStat(`${artifacts}/${designed}`, 'ARTIFACTS SET', '')}
+    </div>
+    <div class="qh-sq-list">${list}</div>`);
+}
+
+function qhOpenDialogues(questId) {
+  const q = allQuests.find(r => r.id === questId);
+  if (!q) return;
+  closeQuestDetails();
+  openDialogueEditor(q.id, q.title || '', q.chapter, q.main_quest, q.sub_quest);
+}
+
+function qhChapterRangeError(start, end) {
+  const valid = v => v === null || (Number.isInteger(v) && v >= 1 && v <= 39);
+  if (!valid(start) || !valid(end)) return 'Chapters must be whole numbers from 1 to 39.';
+  if (start !== null && end !== null && start > end) return '"From" can\'t be after "To".';
+  return '';
+}
+
+function openChapterEditor(questId) {
+  const q = allQuests.find(r => r.id === questId);
+  const wrap = document.getElementById('qh-wrap');
+  if (!q || !wrap) return;
+  wrap.classList.add('qh-editing');
+
+  qhShowFace(`
+    ${qhHead(`EDIT CHAPTERS · MQ${q.main_quest} · SQ${q.sub_quest}`, q.title || 'Untitled sub-quest', '')}
+    <p class="qh-desc">The El Filibusterismo chapters this sub-quest covers, from 1 to 39. Player Management, the leaderboard and the player portal show this range.</p>
+    <div class="qh-form">
+      <label for="qh-chstart-${q.id}">FROM
+        <input type="number" min="1" max="39" step="1" id="qh-chstart-${q.id}" value="${q.chapter_start == null ? '' : q.chapter_start}">
+      </label>
+      <span class="qh-form-dash" aria-hidden="true">–</span>
+      <label for="qh-chend-${q.id}">TO
+        <input type="number" min="1" max="39" step="1" id="qh-chend-${q.id}" value="${q.chapter_end == null ? '' : q.chapter_end}">
+      </label>
+    </div>
+    <div class="qh-form-msg" id="qh-form-msg" role="alert"></div>
+    <div class="qh-actions">
+      <button type="button" class="qh-btn" id="qh-save-ch" onclick="qhSaveChapters(${q.id})">SAVE CHAPTERS</button>
+      <button type="button" class="qh-btn qh-btn-quiet" onclick="qhCancelChapters(${q.id})">CANCEL</button>
+    </div>`, () => {
+    const msg = document.getElementById('qh-form-msg');
+    [`qh-chstart-${q.id}`, `qh-chend-${q.id}`].forEach(id => {
+      const input = document.getElementById(id);
+      if (!input) return;
+      input.addEventListener('input', () => { if (msg) msg.textContent = ''; });
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); qhSaveChapters(q.id); } });
     });
   });
 }
 
-// Switch to a different Main Quest
-function switchMainQuest(mqNum) {
-  currentMainQuest = mqNum;
+async function qhSaveChapters(questId) {
+  const startEl = document.getElementById(`qh-chstart-${questId}`);
+  const endEl = document.getElementById(`qh-chend-${questId}`);
+  const msg = document.getElementById('qh-form-msg');
+  const btn = document.getElementById('qh-save-ch');
+  if (!startEl || !endEl) return;
 
-  // Update tab active states
-  const tabs = document.querySelectorAll('.chapter-tab');
-  tabs.forEach(tab => {
-    const tabMQ = parseInt(tab.dataset.mq);
-    // Every main quest now has its designed sub-quests, so there is no standby state.
-    tab.classList.toggle('active', tabMQ === mqNum);
-    tab.classList.remove('standby');
-  });
+  const start = startEl.value === '' ? null : Number(startEl.value);
+  const end = endEl.value === '' ? null : Number(endEl.value);
+  const error = qhChapterRangeError(start, end);
+  if (error) { if (msg) msg.textContent = error; return; }
 
-  // Render quests for the selected Main Quest
-  renderChapterQuests(mqNum);
+  if (btn) { btn.disabled = true; btn.textContent = 'SAVING…'; }
+  const saved = await saveChapterRange(questId, 'qh');
+  if (!saved) {
+    if (btn) { btn.disabled = false; btn.textContent = 'SAVE CHAPTERS'; }
+    if (msg) msg.textContent = 'Could not save the chapters. Check your connection and try again.';
+    return;
+  }
+  qhCancelChapters(questId);
 }
 
-// Main Quest Configuration
-const MQ_CONFIG = {
-  1: { count: 4, startSq: 1, startCh: 1 },
-  2: { count: 4, startSq: 5, startCh: 9 },
-  3: { count: 4, startSq: 9, startCh: 17 },
-  4: { count: 4, startSq: 13, startCh: 25 },
-  5: { count: 2, startSq: 17, startCh: 33 },
-  6: { count: 1, startSq: 19, startCh: 37 },
-  7: { count: 1, startSq: 20, startCh: 39, isFinal: true }
-};
-
-// Render quests for a specific Main Quest
-function renderChapterQuests(mqNum) {
-  const container = document.getElementById('quests-grid');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  // Filter quests by main_quest number, sorted by sub_quest
-  const mqQuests = allQuests
-    .filter(q => q.main_quest === mqNum)
-    .sort((a, b) => a.sub_quest - b.sub_quest);
-
-  let activeCount = 0;
-  
-  const config = MQ_CONFIG[mqNum] || { count: 4, startSq: 1, startCh: 1 };
-  const count = config.count;
-
-  for (let index = 0; index < count; index++) {
-    // Match on sub_quest rather than array position, so one missing row cannot shift
-    // every later card onto the wrong quest.
-    const sub = mqQuests.find(q => q.sub_quest === index + 1);
-    
-    const isActive = sub && (sub.status === 'active' || sub.status === 'completed');
-    if (isActive) activeCount++;
-
-    const roman = ['I', 'II', 'III', 'IV'][index] || 'I';
-    
-    // Book chapters come from quests.chapter_start / chapter_end; the design formula
-    // is only a fallback for a row that has no range set.
-    const globalSqNum = config.startSq + index;
-    const startCh = (sub && sub.chapter_start) || (config.startCh + (index * 2));
-    const endCh = (sub && sub.chapter_end) || (config.isFinal ? startCh : startCh + 1);
-    
-    let chapterLabel = startCh === endCh ? `CH. ${startCh}` : `CH. ${startCh}-${endCh}`;
-    let sqLabel = `SUBQUEST ${globalSqNum}`;
-    
-    if (config.isFinal) {
-      sqLabel = `FINAL BOSS`;
-    }
-
-    // Architecture Gameplay Loop
-    let gameplayLoop = '';
-    if (config.isFinal) {
-      gameplayLoop = 'Final Boss Battle ➔ ⦗ GAME CLEARED ⦘';
-    } else if (index === count - 1) { // Last subquest of the MQ unlocks next MQ
-      gameplayLoop = `Suspicion Challenge ➔ ⦗ UNLOCKS MQ ${mqNum + 1} ⦘`;
-    } else {
-      const loops = ['Cutscene ➔ Dialogue ➔ Anchor', 'Cutscene ➔ AR Hunt ➔ Anchor', 'Cutscene ➔ Clues ➔ Anchor'];
-      gameplayLoop = loops[index % 3];
-    }
-
-    const title = sub ? (sub.title || 'Awaiting Storyboard') : 'Awaiting Storyboard';
-    const description = sub ? (sub.description || 'No description available.') : 'No description available.';
-    const statusClass = isActive ? 'pa' : 'pp';
-    // Standby placeholders no longer exist; show the row's real status, or flag a
-    // designed sub-quest that has no database row.
-    const statusText = isActive ? 'ACTIVE' : (sub ? String(sub.status || 'inactive').toUpperCase() : 'NOT IN DATABASE');
-
-    const card = document.createElement('div');
-    card.className = `cc ${!isActive ? 'sb' : ''}`;
-
-    let safeTitle = esc(title).replace(/'/g, "\\'");
-
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-        <div class="cnum" style="margin-bottom: 0;">${sqLabel}</div>
-        <div class="cdec" style="position: static; font-size: 14px;">${roman}</div>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <div style="font-size: 10px; color: var(--goldd); font-family: 'JetBrains Mono', monospace;">${chapterLabel}</div>
-        <div style="font-size: 9px; color: rgba(232, 184, 75, 0.7); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;">${gameplayLoop}</div>
-      </div>
-      <div class="ctit">${esc(title)}</div>
-      <div class="csub">${esc(description)}</div>
-      ${sub && sub.artifact_name ? `<div style="font-size: 9px; color: rgba(232, 184, 75, 0.75); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; margin: 4px 0 6px;">ARTIFACT · ${esc(sub.artifact_name)}</div>` : ''}
-      <span class="pill ${statusClass}">${statusText}</span>
-
-      ${sub ? `
-        <button class="cq-edit-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${safeTitle}', ${sub.chapter}, ${sub.main_quest}, ${sub.sub_quest})" style="margin-top: 15px; width: 100%; border-radius: 4px; padding: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid rgba(232, 184, 75, 0.4); background: rgba(26, 22, 17, 0.8); color: var(--goldl); transition: all 0.2s;">
-          <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-          </svg>
-          DIALOGUES
-        </button>
-      ` : ''}
-    `;
-
-    container.appendChild(card);
-  }
-
-  // Update header stats
-  const statLbl = document.getElementById('stat-qt-chap');
-  if (statLbl) {
-    const mqName = MQ_NAMES[mqNum] || `Main Quest ${mqNum}`;
-    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount}/${count} ACTIVE`;
-  }
-  if (typeof applyTopbarSearch === 'function') applyTopbarSearch();
+function qhCancelChapters(questId) {
+  const q = allQuests.find(r => r.id === questId);
+  const wrap = document.getElementById('qh-wrap');
+  if (wrap) wrap.classList.remove('qh-editing');
+  if (q) openQuestNode(`q-${q.main_quest}-${q.sub_quest}`);
 }
+
+// Esc closes the box; Tab stays inside it while it is open. The dialogue editor modal
+// (opened from the box) handles its own keys.
+document.addEventListener('keydown', e => {
+  if (!qhBoxOpen() || document.querySelector('.mov.open')) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeQuestDetails();
+    return;
+  }
+  if (e.key === 'Tab') {
+    const box = document.getElementById('qh-box');
+    const focusables = box ? [...box.querySelectorAll('button:not([disabled]), input')] : [];
+    if (focusables.length === 0) return;
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if (!box.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+window.addEventListener('resize', () => { if (qhBoxOpen()) qhPlaceBox(); });
 
 // Main function to fetch and render quests
 async function fetchAndRenderQuests() {
+  const summary = document.getElementById('qh-summary');
+  if (summary && allQuests.length === 0) summary.innerHTML = '<span class="qh-state">Loading quests...</span>';
+
   try {
     // Fetch all quests from the database
     let quests = await apiCall('/quests');
@@ -474,19 +860,35 @@ async function fetchAndRenderQuests() {
     if (!Array.isArray(quests)) quests = [];
 
     allQuests = quests;
-
-    // Initialize chapter tabs
-    initChapterTabs();
-
-    // Render current Main Quest (default: MQ 1)
-    renderChapterQuests(currentMainQuest);
-
-    // Update dashboard stats with live quest counts
-    updateQuestStats(quests);
-
   } catch (err) {
     console.error('Failed to load quests:', err);
+    if (summary) {
+      summary.innerHTML = '<span class="qh-state qh-state-error">Could not load quests.</span> <button class="ab abv" onclick="fetchAndRenderQuests()">RETRY</button>';
+    }
+    return;
   }
+
+  // Completions and game-overs per sub-quest. Optional: the hierarchy still renders
+  // without them and shows "—" in their place.
+  try {
+    const data = await apiCall('/quests/quest-stats');
+    questStatsByKey = {};
+    (data.stats || []).forEach(s => {
+      questStatsByKey[qhKey(Number(s.main_quest), Number(s.sub_quest))] = {
+        completed: toStatNumber(s.completed),
+        game_overs: toStatNumber(s.game_overs)
+      };
+    });
+    questStatsLoaded = true;
+  } catch (err) {
+    console.warn('Quest stats unavailable:', err);
+    questStatsLoaded = false;
+  }
+
+  renderQuestHierarchy();
+
+  // Update dashboard stats with live quest counts
+  updateQuestStats(allQuests);
 }
 
 // Update quest statistics on the dashboard
@@ -728,6 +1130,7 @@ async function refreshDialogueList(questId) {
   try {
     const data = await apiCall(`/quests/${questId}/dialogues`);
     const dialogues = data.dialogues || [];
+    questDialogueCounts[questId] = dialogues.length;  // keeps the hierarchy's count current
 
     if (dialogues.length === 0) {
       listEl.innerHTML = `
@@ -1055,10 +1458,12 @@ async function deleteDialogue(dialogueId) {
 
 // Save the El Filibusterismo chapter range a sub-quest covers (1-39, From <= To).
 // The backend validates the same rules; checking here gives an immediate message.
-async function saveChapterRange(questId) {
-  const startEl = document.getElementById(`dlg-chstart-${questId}`);
-  const endEl = document.getElementById(`dlg-chend-${questId}`);
-  if (!startEl || !endEl) return;
+// idPrefix picks the form: 'dlg' is the dialogue editor, 'qh' the hierarchy's details box.
+// Returns true when saved.
+async function saveChapterRange(questId, idPrefix = 'dlg') {
+  const startEl = document.getElementById(`${idPrefix}-chstart-${questId}`);
+  const endEl = document.getElementById(`${idPrefix}-chend-${questId}`);
+  if (!startEl || !endEl) return false;
 
   const chapter_start = startEl.value === '' ? null : Number(startEl.value);
   const chapter_end = endEl.value === '' ? null : Number(endEl.value);
@@ -1066,11 +1471,11 @@ async function saveChapterRange(questId) {
 
   if (!valid(chapter_start) || !valid(chapter_end)) {
     showT('Chapters must be whole numbers from 1 to 39', 'error');
-    return;
+    return false;
   }
   if (chapter_start !== null && chapter_end !== null && chapter_start > chapter_end) {
     showT('"From" chapter cannot be after the "To" chapter', 'error');
-    return;
+    return false;
   }
 
   try {
@@ -1084,11 +1489,13 @@ async function saveChapterRange(questId) {
       qObj.chapter_start = chapter_start;
       qObj.chapter_end = chapter_end;
     }
-    renderChapterQuests(currentMainQuest);
+    renderQuestHierarchy();
     showT('Chapters saved', 'success');
+    return true;
   } catch (err) {
     console.error('Failed to save chapters:', err);
     showT('Failed to save chapters', 'error');
+    return false;
   }
 }
 
