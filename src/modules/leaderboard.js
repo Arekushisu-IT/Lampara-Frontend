@@ -78,10 +78,14 @@ function displayLeaderboard(rankings) {
 
     // ---- PROGRESS ----
     const progressCell = document.createElement('td');
-    progressCell.textContent = Math.min(100, entry.questProgress || 0) + '% (Ch. ' + (entry.chapter || 1) + ')';
+    // entry.chapter is the main-quest number; show the book chapters the player is on.
+    const bs = entry.bookChapterStart;
+    const be = entry.bookChapterEnd;
+    const chapterLabel = bs == null ? 'not started' : ((be == null || be === bs) ? `Ch. ${bs}` : `Ch. ${bs}–${be}`);
+    progressCell.textContent = Math.min(100, entry.questProgress || 0) + '% (' + chapterLabel + ')';
     tr.appendChild(progressCell);
 
-    // ---- FAIL COUNT (suspicion) ----
+    // ---- FAIL COUNT (game-overs, from player_quests.failure_count) ----
     const failCell = document.createElement('td');
     failCell.style.textAlign = 'center';
     const fc = entry.failCount || 0;

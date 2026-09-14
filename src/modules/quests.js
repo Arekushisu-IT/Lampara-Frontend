@@ -346,20 +346,9 @@ function switchMainQuest(mqNum) {
   const tabs = document.querySelectorAll('.chapter-tab');
   tabs.forEach(tab => {
     const tabMQ = parseInt(tab.dataset.mq);
-    if (tabMQ === mqNum) {
-      tab.classList.add('active');
-      tab.classList.remove('standby');
-    } else {
-      tab.classList.remove('active');
-      // Mark MQs without active quests as standby
-      const mqQuests = allQuests.filter(q => q.main_quest === tabMQ);
-      const hasActive = mqQuests.some(q => q.status === 'active' || q.status === 'completed');
-      if (!hasActive) {
-        tab.classList.add('standby');
-      } else {
-        tab.classList.remove('standby');
-      }
-    }
+    // Every main quest now has its designed sub-quests, so there is no standby state.
+    tab.classList.toggle('active', tabMQ === mqNum);
+    tab.classList.remove('standby');
   });
 
   // Render quests for the selected Main Quest
@@ -395,23 +384,25 @@ function renderChapterQuests(mqNum) {
   const count = config.count;
 
   for (let index = 0; index < count; index++) {
-    const sub = mqQuests[index];
+    // Match on sub_quest rather than array position, so one missing row cannot shift
+    // every later card onto the wrong quest.
+    const sub = mqQuests.find(q => q.sub_quest === index + 1);
     
     const isActive = sub && (sub.status === 'active' || sub.status === 'completed');
     if (isActive) activeCount++;
 
     const roman = ['I', 'II', 'III', 'IV'][index] || 'I';
     
-    // Calculate book chapters and cumulative subquest number
+    // Book chapters come from quests.chapter_start / chapter_end; the design formula
+    // is only a fallback for a row that has no range set.
     const globalSqNum = config.startSq + index;
-    const startCh = config.startCh + (index * 2);
-    const endCh = startCh + 1;
+    const startCh = (sub && sub.chapter_start) || (config.startCh + (index * 2));
+    const endCh = (sub && sub.chapter_end) || (config.isFinal ? startCh : startCh + 1);
     
-    let chapterLabel = `CH. ${startCh}-${endCh}`;
+    let chapterLabel = startCh === endCh ? `CH. ${startCh}` : `CH. ${startCh}-${endCh}`;
     let sqLabel = `SUBQUEST ${globalSqNum}`;
     
     if (config.isFinal) {
-      chapterLabel = `CH. 39`;
       sqLabel = `FINAL BOSS`;
     }
 
@@ -429,7 +420,9 @@ function renderChapterQuests(mqNum) {
     const title = sub ? (sub.title || 'Awaiting Storyboard') : 'Awaiting Storyboard';
     const description = sub ? (sub.description || 'No description available.') : 'No description available.';
     const statusClass = isActive ? 'pa' : 'pp';
-    const statusText = isActive ? 'ACTIVE' : 'STANDBY';
+    // Standby placeholders no longer exist; show the row's real status, or flag a
+    // designed sub-quest that has no database row.
+    const statusText = isActive ? 'ACTIVE' : (sub ? String(sub.status || 'inactive').toUpperCase() : 'NOT IN DATABASE');
 
     const card = document.createElement('div');
     card.className = `cc ${!isActive ? 'sb' : ''}`;
@@ -449,21 +442,14 @@ function renderChapterQuests(mqNum) {
       <div class="csub">${esc(description)}</div>
       <span class="pill ${statusClass}">${statusText}</span>
 
-      ${isActive ? `
+      ${sub ? `
         <button class="cq-edit-btn" onclick="event.stopPropagation(); openDialogueEditor(${sub.id}, '${safeTitle}', ${sub.chapter}, ${sub.main_quest}, ${sub.sub_quest})" style="margin-top: 15px; width: 100%; border-radius: 4px; padding: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid rgba(232, 184, 75, 0.4); background: rgba(26, 22, 17, 0.8); color: var(--goldl); transition: all 0.2s;">
           <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
           </svg>
           DIALOGUES
         </button>
-      ` : `
-        <button class="cq-edit-btn" onclick="event.stopPropagation(); openQuestEditor(${sub ? sub.id : 'null'})" style="margin-top: 15px; width: 100%; border-radius: 4px; padding: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid rgba(232, 184, 75, 0.4); background: rgba(26, 22, 17, 0.8); color: var(--goldl); transition: all 0.2s;">
-          <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-          </svg>
-          EDIT QUEST
-        </button>
-      `}
+      ` : ''}
     `;
 
     container.appendChild(card);
@@ -473,7 +459,7 @@ function renderChapterQuests(mqNum) {
   const statLbl = document.getElementById('stat-qt-chap');
   if (statLbl) {
     const mqName = MQ_NAMES[mqNum] || `Main Quest ${mqNum}`;
-    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount} ACTIVE · ${count - activeCount} STANDBY`;
+    statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount}/${count} ACTIVE`;
   }
 }
 
@@ -517,22 +503,6 @@ function updateQuestStats(quests) {
   if (chaptersLiveEl) {
     chaptersLiveEl.innerHTML = `${activeQuests}<span style="font-size:12px;color:var(--td)">/${totalQuests}</span>`;
   }
-}
-
-// Open quest editor for standby quests
-function openQuestEditor(questId) {
-  if (!questId) {
-    showT('No quest selected', 'error');
-    return;
-  }
-  const quest = allQuests.find(q => q.id === questId);
-  if (!quest) {
-    showT('Quest not found', 'error');
-    return;
-  }
-  // Open the existing dialogue editor modal but with quest metadata editing
-  const safeTitle = esc(quest.title || '').replace(/'/g, "\\'");
-  openDialogueEditor(questId, safeTitle, quest.chapter, quest.main_quest, quest.sub_quest);
 }
 
 // ============================================================
@@ -702,17 +672,22 @@ function renderBarChart(labels, values, tooltips) {
 }
 
 async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest) {
-  // Try to find the index to pass as the Quest Number
-  const indexOrQuest = allQuests.filter(q => q.chapter === chapter).findIndex(q => q.id === questId) + 1;
   currentEditQuest = { id: questId, title: questTitle, chapter, quest, subQuest };
 
   const qObj = allQuests.find(q => q.id === questId);
   const artifactPath = qObj ? (qObj.artifact_resource_path || '') : '';
+  // Identify the quest by its place in the structure. The old "Quest N (Chapter 1)"
+  // filtered on the legacy quests.chapter column, which is always 1.
+  const chStart = qObj ? qObj.chapter_start : null;
+  const chEnd = qObj ? qObj.chapter_end : null;
+  const chapterText = chStart == null ? 'no chapters set'
+    : ((chEnd == null || chEnd === chStart) ? `Ch. ${chStart}` : `Ch. ${chStart}–${chEnd}`);
+  const questLabel = `MQ${quest} · SQ${subQuest}`;
 
   // Update title
   const titleEl = document.getElementById('dlg-mtit');
   if (titleEl) {
-    titleEl.textContent = `DIALOGUE EDITOR — Quest ${indexOrQuest || quest}`;
+    titleEl.textContent = `DIALOGUE EDITOR — ${questLabel}`;
   }
 
   // Update quest info
@@ -720,7 +695,19 @@ async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest)
   if (infoEl) {
     infoEl.innerHTML = `
       <div class="dlg-info-title">${esc(questTitle)}</div>
-      <div class="dlg-info-sub" style="margin-bottom: 15px;">Quest ${indexOrQuest || quest} (Chapter ${chapter})</div>
+      <div class="dlg-info-sub" style="margin-bottom: 15px;">${questLabel} · ${chapterText}</div>
+      <div class="sq-artifact-field">
+        <label>El Filibusterismo Chapters</label>
+        <div class="sq-artifact-picker">
+          <input type="number" min="1" max="39" class="sq-artifact-input" id="dlg-chstart-${questId}" value="${chStart == null ? '' : chStart}" placeholder="From" style="width: 5em;">
+          <input type="number" min="1" max="39" class="sq-artifact-input" id="dlg-chend-${questId}" value="${chEnd == null ? '' : chEnd}" placeholder="To" style="width: 5em;">
+          <button class="sq-artifact-save" onclick="event.stopPropagation(); saveChapterRange(${questId})" title="Save chapters">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
       <div class="sq-artifact-field">
         <label>AR Artifact Path</label>
         <div class="sq-artifact-picker">
@@ -1094,6 +1081,45 @@ async function saveArtifactPath(questId, inputId) {
   } catch (err) {
     console.error('Failed to save artifact path:', err);
     showT('Failed to save artifact path', 'error');
+  }
+}
+
+// Save the El Filibusterismo chapter range a sub-quest covers (1-39, From <= To).
+// The backend validates the same rules; checking here gives an immediate message.
+async function saveChapterRange(questId) {
+  const startEl = document.getElementById(`dlg-chstart-${questId}`);
+  const endEl = document.getElementById(`dlg-chend-${questId}`);
+  if (!startEl || !endEl) return;
+
+  const chapter_start = startEl.value === '' ? null : Number(startEl.value);
+  const chapter_end = endEl.value === '' ? null : Number(endEl.value);
+  const valid = v => v === null || (Number.isInteger(v) && v >= 1 && v <= 39);
+
+  if (!valid(chapter_start) || !valid(chapter_end)) {
+    showT('Chapters must be whole numbers from 1 to 39', 'error');
+    return;
+  }
+  if (chapter_start !== null && chapter_end !== null && chapter_start > chapter_end) {
+    showT('"From" chapter cannot be after the "To" chapter', 'error');
+    return;
+  }
+
+  try {
+    await apiCall(`/quests/${questId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ chapter_start, chapter_end })
+    });
+
+    const qObj = allQuests.find(q => q.id === questId);
+    if (qObj) {
+      qObj.chapter_start = chapter_start;
+      qObj.chapter_end = chapter_end;
+    }
+    renderChapterQuests(currentMainQuest);
+    showT('Chapters saved', 'success');
+  } catch (err) {
+    console.error('Failed to save chapters:', err);
+    showT('Failed to save chapters', 'error');
   }
 }
 

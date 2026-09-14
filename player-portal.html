@@ -1235,6 +1235,13 @@
       const d = Math.floor(h / 24);
       return d + 'd ago';
     }
+    // El Filibusterismo book chapters as "15–16". A player's `chapter` field is the
+    // main-quest number, so ranges come from book_chapter_* / bookChapter* instead.
+    function chapterRange(start, end) {
+      if (start == null) return '—';
+      return (end == null || end === start) ? String(start) : `${start}–${end}`;
+    }
+
     function escHtml(s) {
       const d = document.createElement('div');
       d.textContent = s || '';
@@ -1303,30 +1310,24 @@
         if (!res.ok) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">No quest data yet</div></div>'; return; }
         const data = await res.json();
         document.getElementById('p-drawer-progress').textContent = data.overall_progress + '%';
-        if (!data.chapters || data.chapters.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Your journey has not started yet</div></div>'; return; }
+        const mainQuests = data.main_quests || [];
+        if (mainQuests.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Your journey has not started yet</div></div>'; return; }
         container.innerHTML = '';
-        data.chapters.forEach(ch => {
-          const totalSubs = ch.quests.reduce((s, q) => s + q.total_count, 0);
-          const doneCount = ch.quests.reduce((s, q) => s + q.completed_count, 0);
-          const pct = totalSubs > 0 ? Math.round((doneCount / totalSubs) * 100) : 0;
+        mainQuests.forEach(mq => {
+          const pct = mq.total_count > 0 ? Math.round((mq.completed_count / mq.total_count) * 100) : 0;
           const card = document.createElement('div');
           card.className = 'chapter-card';
           card.innerHTML = `
             <div class="chapter-header" onclick="this.nextElementSibling.classList.toggle('open')">
-              <div class="chapter-num">CHAPTER ${ch.chapter}</div>
+              <div class="chapter-num">MAIN QUEST ${mq.main_quest} · CH. ${chapterRange(mq.chapter_start, mq.chapter_end)}</div>
               <div class="chapter-bar"><div class="chapter-fill" style="width:${pct}%"></div></div>
               <div class="chapter-pct">${pct}%</div>
             </div>
             <div class="chapter-body">
-              ${ch.quests.map(q => `
-                <div style="margin-bottom:8px">
-                  <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;color:var(--gold);margin-bottom:4px">QUEST ${q.quest} — ${q.completion}%</div>
-                  ${q.sub_quests.map(sq => `
-                    <div class="quest-row">
-                      <span class="quest-check ${sq.status === 'completed' ? 'done' : 'not'}">${sq.status === 'completed' ? '✓' : '○'}</span>
-                      <span class="quest-label">${sq.title}</span>
-                    </div>
-                  `).join('')}
+              ${mq.sub_quests.map(sq => `
+                <div class="quest-row">
+                  <span class="quest-check ${sq.status === 'completed' ? 'done' : 'not'}">${sq.status === 'completed' ? '✓' : '○'}</span>
+                  <span class="quest-label">Ch. ${chapterRange(sq.chapter_start, sq.chapter_end)} — ${escHtml(sq.title)}</span>
                 </div>
               `).join('')}
             </div>`;
@@ -1343,7 +1344,7 @@
       const initials = p.name ? p.name.substring(0, 2).toUpperCase() : '??';
 
       document.getElementById('p-avatar').textContent = initials;
-      document.getElementById('p-chapter').textContent = p.chapter || 1;
+      document.getElementById('p-chapter').textContent = chapterRange(p.book_chapter_start, p.book_chapter_end);
 
       loadFeed();
       loadSidebarTop5();
@@ -1384,7 +1385,7 @@
       document.getElementById('p-drawer-avatar').textContent = initials;
       document.getElementById('p-drawer-name').textContent = p.name || 'Player';
       document.getElementById('p-drawer-meta').textContent = `@${p.username || '—'} · ${p.email || '—'}`;
-      document.getElementById('p-drawer-chapter').textContent = p.chapter || 1;
+      document.getElementById('p-drawer-chapter').textContent = chapterRange(p.book_chapter_start, p.book_chapter_end);
       document.getElementById('p-drawer-level').textContent = p.level || 1;
 
       document.getElementById('profile-overlay').style.display = 'block';
@@ -1577,7 +1578,7 @@
           <div style="display:flex;align-items:center;gap:8px;padding:5px 0;${i < data.rankings.length-1 ? 'border-bottom:1px solid var(--bdr)' : ''}">
             <span style="font-family:'Cinzel',serif;font-size:12px;color:${i===0?'#e8b84b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--td)'};min-width:20px">${i+1}</span>
             <span style="font-size:12px;color:var(--tp);flex:1">${escHtml(r.playerName || r.name || r.username || 'Player')}</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ts)">Ch.${r.chapter || 1}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ts)">Ch.${chapterRange(r.bookChapterStart, r.bookChapterEnd)}</span>
           </div>
         `).join('');
       } catch {}
@@ -1594,12 +1595,13 @@
         const tbody = document.getElementById('leaderboard-body');
         if (!data.rankings || data.rankings.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--td);font-size:12px">No rankings yet</td></tr>'; return; }
         tbody.innerHTML = data.rankings.map((r, i) => {
-          const isMe = playerData && Number(r.id) === Number(playerData.id);
+          // Rankings carry playerId, not id -- comparing r.id never matched, so (YOU) never showed.
+          const isMe = playerData && Number(r.playerId ?? r.id) === Number(playerData.id);
           const pct = r.questProgress !== undefined ? r.questProgress + '%' : (r.progress !== undefined ? r.progress + '%' : '0%');
           return `<tr style="border-bottom:1px solid var(--bdr);${isMe ? 'background:rgba(201,149,58,.08)' : ''}">
             <td style="padding:10px 16px;font-family:'Cinzel',serif;font-size:14px;color:${i===0?'#e8b84b':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--td)'}">${i+1}</td>
             <td style="padding:10px 16px;font-size:13px;color:var(--tp)">${escHtml(r.playerName || r.name || r.username || 'Player')}${isMe ? ' <span style="font-size:9px;color:var(--goldl)">(YOU)</span>' : ''}</td>
-            <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ts)">${r.chapter || 1}</td>
+            <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ts)">${chapterRange(r.bookChapterStart, r.bookChapterEnd)}</td>
             <td style="padding:10px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--goldl)">${pct}</td>
           </tr>`;
         }).join('');

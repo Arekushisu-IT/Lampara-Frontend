@@ -21,6 +21,21 @@ async function updatePlayerStatus(playerId, playerName, newStatus, actionName) {
   }
 }
 
+// El Filibusterismo book chapters the player's current sub-quest covers. players.chapter
+// holds the MAIN QUEST number, not a book chapter, so the range comes from
+// book_chapter_start / book_chapter_end. Position 0 means no main quest started yet.
+function bookChapterText(p) {
+  const start = p.book_chapter_start;
+  const end = p.book_chapter_end;
+  if (start == null) return p.current_quest_id ? '—' : 'Not started';
+  return (end == null || end === start) ? `Ch. ${start}` : `Ch. ${start}–${end}`;
+}
+
+// Where the player is in the quest structure, e.g. "MQ2 · SQ4".
+function questPositionText(p) {
+  return p.current_quest_id ? `MQ${p.current_quest_id} · SQ${p.current_sub_quest || 1}` : 'Not started';
+}
+
 function openPM(name, id, section, birthdate, status, chapter, suspicion, codex) {
   document.getElementById('pm-n').textContent = name;
   document.getElementById('pm-i').textContent = id;
@@ -258,7 +273,7 @@ function renderDashboardPlayers(players) {
 
     const initials = p.name.substring(0, 2).toUpperCase();
     const email = p.email || 'Unassigned';
-    const chapterText = `Ch. ${p.chapter || 1}`;
+    const chapterText = bookChapterText(p);
     const suspicion = p.suspicion || 0;
     const susColor = suspicion > 75 ? 'style="color:#e06060"' : 'class="gold-txt"';
 
@@ -269,7 +284,7 @@ function renderDashboardPlayers(players) {
         <button class="ab abr" onclick="rejectPending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">REJECT</button>
       `;
     } else {
-      actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--'}','${displayStatus}','${chapterText}','${suspicion}','--')">VIEW</button>`;
+      actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--'}','${displayStatus}','${chapterText}','${suspicion}','${questPositionText(p)}')">VIEW</button>`;
     }
 
     const row = document.createElement('tr');
@@ -306,11 +321,11 @@ function renderPlayerRegistry(players) {
     const progressPct = Math.min(100, p.overall_progress || 0);
     const email = p.email || 'Unassigned';
 
-    // Codex format: Chapter-Quest (e.g., "1-2")
-    const codex = `${p.chapter || 1}-${p.current_quest_id || 1}`;
-    const codexFull = `Ch.${p.chapter || 1} Q${p.current_quest_id || 1} SQ${p.current_sub_quest || 0}`;
+    // Quest position and El Filibusterismo chapters (see bookChapterText above).
+    const position = questPositionText(p);
+    const chapterText = bookChapterText(p);
 
-    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--'}','${displayStatus}','${codexFull}','${p.suspicion || 0}','${codex}')" >VIEW</button>`;
+    let actionHTML = `<button class="ab abv" onclick="openPM('${p.name.replace(/'/g, "\\'")}','ID-${p.id}','${email}','${p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--'}','${displayStatus}','${chapterText}','${p.suspicion || 0}','${position}')" >VIEW</button>`;
 
     if (p.status === 'active') {
       actionHTML += `<button class="ab absu" onclick="updatePlayerStatus(${p.id}, '${p.name.replace(/'/g, "\\'")}', 'banned', 'Suspended')">SUSPEND</button>`;
@@ -333,7 +348,7 @@ function renderPlayerRegistry(players) {
         <div style="font-size:10px;color:var(--ts)">${progressPct}%</div>
         <div class="pbar"><div class="pfill" style="width:${progressPct}%"></div></div>
       </td>
-      <td><span class="mono-sm gold-txt" style="font-size:11px;font-weight:700">${codex}</span></td>
+      <td><span class="mono-sm gold-txt" style="font-size:11px;font-weight:700" title="${chapterText}">${position}</span></td>
       <td><span class="mono-sm dim-txt">${p.suspicion || 0}</span></td>
       <td>${actionHTML}</td>
     `;
