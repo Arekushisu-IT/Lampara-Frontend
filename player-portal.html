@@ -1270,6 +1270,11 @@
       if (!e.target.closest('#notif-bell') && !e.target.closest('#notif-dropdown')) document.getElementById('notif-dropdown').style.display = 'none';
     });
 
+    // Registered but not yet verified ('inactive'): the email link proves the player owns
+    // the address, so the portal stays closed until then. (The game shows its own waiting screen.)
+    function isUnverified(p) { return p && p.status === 'inactive'; }
+    const UNVERIFIED_MSG = 'Please verify your email first. Check your inbox (and spam) for the LAMPARA verification link.';
+
     async function playerLogin() {
       const username = document.getElementById('pl-user').value.trim();
       const password = document.getElementById('pl-pass').value;
@@ -1285,6 +1290,13 @@
         });
         const data = await res.json();
         if (!res.ok) { errEl.textContent = data.error || 'Login failed'; btn.disabled = false; return; }
+        if (isUnverified(data.player)) {
+          // Log the session straight back out so the player is not left marked online.
+          fetch(`${API_BASE}/auth/player-logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` } }).catch(() => { });
+          errEl.textContent = UNVERIFIED_MSG;
+          btn.disabled = false;
+          return;
+        }
         playerToken = data.token;
         playerData = data.player;
         localStorage.setItem('lampara_player_token', playerToken);
@@ -1297,6 +1309,7 @@
         const res = await fetch(`${API_BASE}/auth/me`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
         if (!res.ok) throw new Error();
         const data = await res.json();
+        if (isUnverified(data.user)) throw new Error('unverified');
         playerData = data.user;
         showPortal();
       } catch { localStorage.removeItem('lampara_player_token'); playerToken = null; }

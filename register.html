@@ -190,7 +190,11 @@
 
         <div class="field">
           <label>Email Address</label>
-          <input type="email" id="r-email" placeholder="your.email@example.com" required>
+          <div class="username-wrap">
+            <input type="email" id="r-email" placeholder="your.email@example.com" required>
+            <span class="username-status" id="email-status"></span>
+          </div>
+          <div class="field-hint" id="email-hint"></div>
         </div>
 
         <div class="form-row">
@@ -395,6 +399,51 @@
     }, 500);
   });
 
+  // Email availability check (one account per email; Gmail dots/+tags count as the same address)
+  let emailTimer;
+  let emailAvailable = null;   // null = not checked yet / could not check
+  const emailInput = document.getElementById('r-email');
+  emailInput.addEventListener('input', () => {
+    clearTimeout(emailTimer);
+    emailAvailable = null;
+    const val = emailInput.value.trim();
+    const hint = document.getElementById('email-hint');
+    const status = document.getElementById('email-status');
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+      hint.textContent = val.length > 0 ? 'Enter a valid email address' : '';
+      hint.className = 'field-hint err';
+      status.textContent = '';
+      return;
+    }
+
+    hint.textContent = 'Checking...';
+    hint.className = 'field-hint';
+    status.textContent = '⏳';
+
+    emailTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/check-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: val })
+        });
+        const data = await res.json();
+        if (emailInput.value.trim() !== val) return;   // user kept typing
+        if (!res.ok) throw new Error(data.error);
+        emailAvailable = !!data.available;
+        hint.textContent = data.available ? 'Email is available ✓' : (data.message || 'Email is already used');
+        hint.className = data.available ? 'field-hint ok' : 'field-hint err';
+        status.textContent = data.available ? '✓' : '✗';
+        status.style.color = data.available ? '#6dba85' : '#e06060';
+      } catch {
+        hint.textContent = 'Could not check email';
+        hint.className = 'field-hint err';
+        status.textContent = '?';
+      }
+    }, 500);
+  });
+
   // Form submission
   document.getElementById('reg-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -413,6 +462,8 @@
     // Validation
     if (!fname || !lname) { errEl.textContent = 'Please enter your full name'; return; }
     if (!email) { errEl.textContent = 'Email is required'; return; }
+    // The server enforces this too; this just saves a round trip.
+    if (emailAvailable === false) { errEl.textContent = 'This email already has an account. Log in, or reset your password.'; return; }
     if (!birthdate) { errEl.textContent = 'Please select your birthdate'; return; }
     if (username.length < 3) { errEl.textContent = 'Username must be at least 3 characters'; return; }
     if (password.length < 8 || password.length > 12) { errEl.textContent = 'Password must be 8-12 characters'; return; }
