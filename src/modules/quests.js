@@ -462,6 +462,7 @@ function renderChapterQuests(mqNum) {
     const mqName = MQ_NAMES[mqNum] || `Main Quest ${mqNum}`;
     statLbl.textContent = `MQ${mqNum}: ${mqName} · ${activeCount}/${count} ACTIVE`;
   }
+  if (typeof applyTopbarSearch === 'function') applyTopbarSearch();
 }
 
 // Main function to fetch and render quests
@@ -512,54 +513,47 @@ function updateQuestStats(quests) {
 
 let qsDoughnutChart = null;
 let qsBarChart = null;
-const STATIC_QUEST_DIFFICULTY_RANKING = [
-  { label: 'Ch.1 MQ1 SQ3', failed: 78, tooltip: 'Static ranking: 59% fail rate' },
-  { label: 'Ch.2 MQ1 SQ4', failed: 65, tooltip: 'Static ranking: 50% fail rate' },
-  { label: 'Ch.1 MQ2 SQ5', failed: 47, tooltip: 'Static ranking: 46% fail rate' },
-  { label: 'Ch.3 MQ1 SQ2', failed: 42, tooltip: 'Static ranking: 57% fail rate' },
-  { label: 'Ch.2 MQ2 SQ1', failed: 36, tooltip: 'Static ranking: 45% fail rate' }
-];
-
 function toStatNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Quest attempt overview (doughnut) and the five quests with the most game-overs
+// (bar). Both used to show hardcoded numbers: the bar chart always, the doughnut
+// whenever the request failed. On failure the charts now render empty instead.
 async function fetchAndRenderQuestStats() {
   try {
     const data = await apiCall('/quests/quest-stats');
-    const stats = (data.stats || []).sort((a, b) => (b.failed || 0) - (a.failed || 0));
+    const stats = data.stats || [];
 
-    // Aggregate totals for doughnut
     let totalCompleted = 0, totalFailed = 0, totalInProgress = 0;
     stats.forEach(s => {
-      const completed = toStatNumber(s.completed);
-      const failed = toStatNumber(s.failed);
-      const attempts = toStatNumber(s.attempts);
-      totalCompleted += completed;
-      totalFailed += failed;
-      totalInProgress += (attempts - completed - failed);
+      totalCompleted += toStatNumber(s.completed);
+      totalFailed += toStatNumber(s.failed);
+      totalInProgress += toStatNumber(s.in_progress);
     });
-    if (totalInProgress < 0) totalInProgress = 0;
-    const totalAll = totalCompleted + totalFailed + totalInProgress;
+    renderDoughnut(totalCompleted, totalFailed, totalInProgress, totalCompleted + totalFailed + totalInProgress);
 
-    renderDoughnut(totalCompleted, totalFailed, totalInProgress, totalAll);
-    renderStaticQuestDifficultyRanking();
+    const top = stats
+      .filter(s => toStatNumber(s.game_overs) > 0)
+      .sort((a, b) => toStatNumber(b.game_overs) - toStatNumber(a.game_overs))
+      .slice(0, 5);
 
+    renderBarChart(
+      top.map(s => {
+        const cs = s.chapter_start, ce = s.chapter_end;
+        const ch = cs == null ? '' : ((ce == null || ce === cs) ? ` · Ch.${cs}` : ` · Ch.${cs}-${ce}`);
+        return `MQ${s.main_quest} SQ${s.sub_quest}${ch}`;
+      }),
+      top.map(s => toStatNumber(s.game_overs)),
+      top.map(s => ` ${s.title}: ${toStatNumber(s.game_overs)} game-overs · ${toStatNumber(s.attempts)} players · ${toStatNumber(s.completed)} completed`)
+    );
   } catch (err) {
     console.error('Failed to load quest stats:', err);
-    // Dummy data for visual preview if API fails
-    renderDoughnut(532, 381, 399, 1312);
-    renderStaticQuestDifficultyRanking();
+    renderDoughnut(0, 0, 0, 0);
+    renderBarChart([], [], []);
+    showT('Could not load quest statistics', 'error');
   }
-}
-
-function renderStaticQuestDifficultyRanking() {
-  renderBarChart(
-    STATIC_QUEST_DIFFICULTY_RANKING.map(item => item.label),
-    STATIC_QUEST_DIFFICULTY_RANKING.map(item => item.failed),
-    STATIC_QUEST_DIFFICULTY_RANKING.map(item => item.tooltip)
-  );
 }
 
 function renderDoughnut(completed, failed, inProgress, total) {
@@ -653,7 +647,7 @@ function renderBarChart(labels, values, tooltips) {
           titleColor: '#e8b84b', bodyColor: '#f0d090',
           bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
           callbacks: {
-            label: function(ctx) { return tooltips[ctx.dataIndex] || ` ${ctx.raw} fails`; }
+            label: function(ctx) { return tooltips[ctx.dataIndex] || ` ${ctx.raw} game-overs`; }
           }
         }
       },
@@ -661,7 +655,7 @@ function renderBarChart(labels, values, tooltips) {
         x: {
           grid: { color: 'rgba(201,149,58,0.08)' },
           ticks: { color: '#6b5740', font: { family: "'JetBrains Mono', monospace", size: 10 } },
-          title: { display: true, text: 'FAILED ATTEMPTS COUNT', color: '#6b5740', font: { family: "'Cinzel', serif", size: 9, weight: 700 } }
+          title: { display: true, text: 'GAME-OVERS', color: '#6b5740', font: { family: "'Cinzel', serif", size: 9, weight: 700 } }
         },
         y: {
           grid: { display: false },

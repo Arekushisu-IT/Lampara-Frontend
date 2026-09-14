@@ -134,6 +134,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // Initialize filters
   initFilters();
+  initTopbarSearch();
 
   // Attempt to restore session
   const restored = await restoreSession();

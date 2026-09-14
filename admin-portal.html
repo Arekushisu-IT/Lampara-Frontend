@@ -255,7 +255,7 @@
               d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
               clip-rule="evenodd" />
           </svg>
-          <input type="text" placeholder="Search players, chapters...">
+          <input type="search" id="topbar-search" placeholder="Search this page..." aria-label="Search this page">
         </div>
 
         <button class="tbbtn" id="notif-bell" style="position: relative;" title="View Pending Approvals">
@@ -353,7 +353,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
                 <div
                   style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);">
-                  TOP 5 MOST FAILED QUESTS</div>
+                  TOP 5 QUESTS BY GAME-OVERS</div>
                 <button class="fb active" onclick="fetchAndRenderQuestStats()"
                   style="font-size:9px;padding:3px 10px;letter-spacing:2px;">REFRESH</button>
               </div>
@@ -678,8 +678,8 @@
           <div id="pm-art-list" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; margin-top: 8px; max-height: 190px; overflow-y: auto;"></div>
         </div>
         <div class="macts">
-          <button class="mbtn mbok" onclick="showT('Player reinstated','success');closeM('mov-pl')">REINSTATE</button>
-          <button class="mbtn mbbad" onclick="showT('Player suspended','error');closeM('mov-pl')">SUSPEND</button>
+          <button class="mbtn mbok" id="pm-reinstate" onclick="setProfileStatus('active', 'Reinstated')">REINSTATE</button>
+          <button class="mbtn mbbad" id="pm-suspend" onclick="setProfileStatus('banned', 'Suspended')">SUSPEND</button>
         </div>
       </div>
     </div>

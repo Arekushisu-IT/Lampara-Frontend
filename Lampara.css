@@ -804,6 +804,12 @@ input:-webkit-autofill:active {
   color: var(--td);
 }
 
+/* Hidden by the topbar search. A class with !important rather than inline display,
+   so it stacks with the status filters (which set style.display) instead of undoing them. */
+.search-miss {
+  display: none !important;
+}
+
 .tbsrch svg {
   color: var(--td);
   flex-shrink: 0;

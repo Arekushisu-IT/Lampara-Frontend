@@ -44,6 +44,43 @@ function sp(id, el) {
   el.classList.add('active');
 
   document.getElementById('tbtit').textContent = PANEL_TITLES[id] || id.toUpperCase();
+  applyTopbarSearch();
+}
+
+/* TOPBAR SEARCH
+   Filters what the active panel shows: table rows and quest cards whose text contains
+   the term. Renderers call applyTopbarSearch() after redrawing, so a refresh keeps the
+   filter. Escape clears it. */
+let topbarSearchTerm = '';
+
+function applyTopbarSearch() {
+  document.querySelectorAll('.search-miss').forEach(el => el.classList.remove('search-miss'));
+  if (!topbarSearchTerm) return;
+
+  const panel = document.querySelector('.panel.active');
+  if (!panel) return;
+
+  panel.querySelectorAll('tbody tr, .cc').forEach(el => {
+    if (el.querySelector('td[colspan]')) return; // loading / empty placeholder rows
+    if (!el.textContent.toLowerCase().includes(topbarSearchTerm)) el.classList.add('search-miss');
+  });
+}
+
+function initTopbarSearch() {
+  const input = document.getElementById('topbar-search');
+  if (!input) return;
+
+  input.addEventListener('input', () => {
+    topbarSearchTerm = input.value.trim().toLowerCase();
+    applyTopbarSearch();
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      input.value = '';
+      topbarSearchTerm = '';
+      applyTopbarSearch();
+    }
+  });
 }
 
 /* FILTER BUTTONS */

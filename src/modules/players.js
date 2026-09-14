@@ -14,10 +14,12 @@ async function updatePlayerStatus(playerId, playerName, newStatus, actionName) {
     const logActionName = actionName.toUpperCase();
     addLog(logActionName, currentUser ? currentUser.name : 'Admin', playerName, currentUser ? currentUser.role : 'all');
     fetchAndRenderPlayers();
+    return true;
 
   } catch (err) {
     console.error('Failed to update player status:', err);
     showT(`Error: Could not ${String(actionName || '').toLowerCase()} ${playerName}`, 'error');
+    return false;
   }
 }
 
@@ -56,8 +58,36 @@ function openPM(name, id, section, birthdate, status, chapter, suspicion, codex)
   document.getElementById('mov-pl').classList.add('open');
 
   const playerId = String(id).replace(/^ID-/, '');
+  currentProfile = { id: playerId, name };
+  updateProfileActions(status);
   loadPlayerProfileLive(playerId);
   loadPlayerArtifacts(playerId);
+}
+
+// The player the profile modal is showing, for its REINSTATE / SUSPEND buttons.
+let currentProfile = null;
+
+// Show only the action that applies: SUSPEND for an active player, REINSTATE for a
+// suspended one, neither for a pending account (those are approved in Verification).
+function updateProfileActions(status) {
+  const s = String(status || '').toLowerCase();
+  const suspended = s === 'banned' || s === 'suspended';
+  const pending = s === 'inactive' || s === 'pending';
+  const reinstate = document.getElementById('pm-reinstate');
+  const suspend = document.getElementById('pm-suspend');
+  if (reinstate) reinstate.style.display = suspended ? '' : 'none';
+  if (suspend) suspend.style.display = (!suspended && !pending) ? '' : 'none';
+}
+
+// REINSTATE / SUSPEND from the profile. These buttons previously only showed a toast
+// and changed nothing.
+async function setProfileStatus(newStatus, actionName) {
+  if (!currentProfile) return;
+  if (newStatus === 'banned' && !confirm(`Suspend ${currentProfile.name}? They will not be able to log in.`)) {
+    return;
+  }
+  const ok = await updatePlayerStatus(currentProfile.id, currentProfile.name, newStatus, actionName);
+  if (ok) closeM('mov-pl');
 }
 
 // The player whose live profile numbers are loading. A slow response for a
@@ -96,6 +126,7 @@ async function loadPlayerProfileLive(playerId) {
     const label = isBanned ? 'SUSPENDED' : (isPending ? 'PENDING' : 'ACTIVE');
     const cls = isBanned ? 'ps' : (isPending ? 'pp' : 'pa');
     document.getElementById('pm-st').innerHTML = `<span class="pill ${cls}">${label}</span>`;
+    updateProfileActions(data.status);
 
     if (failEl) failEl.textContent = data.total_failures || 0;
     if (doneEl) {
@@ -418,6 +449,7 @@ function renderDashboardPlayers(players) {
     `;
     tbody.appendChild(row);
   });
+  if (typeof applyTopbarSearch === 'function') applyTopbarSearch();
 }
 
 function renderPlayerRegistry(players) {
@@ -473,4 +505,5 @@ function renderPlayerRegistry(players) {
     `;
     tbody.appendChild(row);
   });
+  if (typeof applyTopbarSearch === 'function') applyTopbarSearch();
 }

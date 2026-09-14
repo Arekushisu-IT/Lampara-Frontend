@@ -121,6 +121,7 @@ function displayLeaderboard(rankings) {
   });
 
   console.log('[Leaderboard] Displayed ' + rankings.length + ' entries');
+  if (typeof applyTopbarSearch === 'function') applyTopbarSearch();
 }
 
 function updateLeaderboardStats(data) {
