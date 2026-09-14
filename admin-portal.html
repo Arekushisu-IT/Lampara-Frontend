@@ -393,6 +393,8 @@
               <button class="fb">Active</button>
               <button class="fb">Suspended</button>
               <button class="fb">Pending</button>
+              <!-- Not class "fb": ui.js wires every .fb in this toolbar up as a filter. -->
+              <button class="ab abv" style="margin-left: auto;" onclick="refreshPlayerRegistry(this)">REFRESH</button>
             </div>
             <table>
               <thead>
@@ -404,6 +406,7 @@
                   <th>Current Quest</th>
                   <th>Artifacts</th>
                   <th>Suspicion</th>
+                  <th>Fails</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -660,6 +663,14 @@
           <div class="mfld">
             <div class="mll">Current Quest</div>
             <div class="mvl" id="pm-cd">—</div>
+          </div>
+          <div class="mfld">
+            <div class="mll">Game-Overs</div>
+            <div class="mvl mono" id="pm-fl">—</div>
+          </div>
+          <div class="mfld">
+            <div class="mll">Quests Completed</div>
+            <div class="mvl mono" id="pm-qc">—</div>
           </div>
         </div>
         <div class="mfld" style="margin-top: 14px;">

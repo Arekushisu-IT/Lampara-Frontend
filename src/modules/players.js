@@ -27,13 +27,16 @@ async function updatePlayerStatus(playerId, playerName, newStatus, actionName) {
 function bookChapterText(p) {
   const start = p.book_chapter_start;
   const end = p.book_chapter_end;
-  if (start == null) return p.current_quest_id ? '—' : 'Not started';
+  // No range: either the player has not begun, or their saved position has no quest
+  // row (e.g. a leftover slot) even though they have completed quests.
+  if (start == null) return (p.current_quest_id || p.overall_progress > 0) ? '—' : 'Not started';
   return (end == null || end === start) ? `Ch. ${start}` : `Ch. ${start}–${end}`;
 }
 
 // Where the player is in the quest structure, e.g. "MQ2 · SQ4".
 function questPositionText(p) {
-  return p.current_quest_id ? `MQ${p.current_quest_id} · SQ${p.current_sub_quest || 1}` : 'Not started';
+  if (p.current_quest_id) return `MQ${p.current_quest_id} · SQ${p.current_sub_quest || 1}`;
+  return p.overall_progress > 0 ? '—' : 'Not started';
 }
 
 function openPM(name, id, section, birthdate, status, chapter, suspicion, codex) {
@@ -52,7 +55,76 @@ function openPM(name, id, section, birthdate, status, chapter, suspicion, codex)
   document.getElementById('pmtit').textContent = name.toUpperCase() + ' — PROFILE';
   document.getElementById('mov-pl').classList.add('open');
 
-  loadPlayerArtifacts(String(id).replace(/^ID-/, ''));
+  const playerId = String(id).replace(/^ID-/, '');
+  loadPlayerProfileLive(playerId);
+  loadPlayerArtifacts(playerId);
+}
+
+// The player whose live profile numbers are loading. A slow response for a
+// previously opened player must not overwrite the profile currently shown.
+let profileLiveFor = null;
+
+// Re-fetches the numbers that change during play, so the profile reflects the
+// database now rather than whatever the player list loaded earlier. The values
+// passed to openPM stay on screen until this lands, or if it fails.
+async function loadPlayerProfileLive(playerId) {
+  const failEl = document.getElementById('pm-fl');
+  const doneEl = document.getElementById('pm-qc');
+  profileLiveFor = playerId;
+  if (failEl) failEl.textContent = '…';
+  if (doneEl) doneEl.textContent = '…';
+
+  try {
+    const data = await apiCall(`/players/${playerId}/progression`);
+    if (profileLiveFor !== playerId || !data) return;
+
+    // Same shape bookChapterText / questPositionText read from the player list.
+    const p = {
+      current_quest_id: data.current_quest,
+      current_sub_quest: data.current_sub_quest,
+      book_chapter_start: data.current_book_chapter_start,
+      book_chapter_end: data.current_book_chapter_end,
+      overall_progress: data.overall_progress
+    };
+
+    document.getElementById('pm-c').textContent = bookChapterText(p);
+    document.getElementById('pm-cd').textContent = questPositionText(p);
+    document.getElementById('pm-su').textContent = (data.suspicion || 0) + ' / 100 pts';
+
+    const isBanned = data.status === 'banned' || data.status === 'suspended';
+    const isPending = data.status === 'inactive' || data.status === 'pending';
+    const label = isBanned ? 'SUSPENDED' : (isPending ? 'PENDING' : 'ACTIVE');
+    const cls = isBanned ? 'ps' : (isPending ? 'pp' : 'pa');
+    document.getElementById('pm-st').innerHTML = `<span class="pill ${cls}">${label}</span>`;
+
+    if (failEl) failEl.textContent = data.total_failures || 0;
+    if (doneEl) {
+      doneEl.textContent = `${data.completed_sub_quests || 0} / ${data.total_sub_quests || 0} (${data.overall_progress || 0}%)`;
+    }
+  } catch (err) {
+    if (profileLiveFor !== playerId) return;
+    if (failEl) failEl.textContent = '—';
+    if (doneEl) doneEl.textContent = '—';
+  }
+}
+
+// Reloads the player list and re-applies the active filter (All / Active / ...),
+// since re-rendering shows every row again.
+async function refreshPlayerRegistry(btn) {
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'REFRESHING…';
+  }
+  try {
+    await fetchAndRenderPlayers();
+    const activeFilter = document.querySelector('#panel-pl .tb .fb.active');
+    if (activeFilter) activeFilter.click();
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'REFRESH';
+    }
+  }
 }
 
 // The player whose artifacts the profile modal is showing. Guards against a slow
@@ -393,6 +465,7 @@ function renderPlayerRegistry(players) {
       <td><span class="mono-sm gold-txt" style="font-size:11px;font-weight:700" title="${chapterText}">${position}</span></td>
       <td><span class="mono-sm">${p.artifacts_collected || 0}/${p.artifacts_total || 0}</span></td>
       <td><span class="mono-sm dim-txt">${p.suspicion || 0}</span></td>
+      <td><span class="mono-sm ${(p.total_failures || 0) > 0 ? 'gold-txt' : 'dim-txt'}">${p.total_failures || 0}</span></td>
       <td>${actionHTML}</td>
     `;
     tbody.appendChild(row);

@@ -81,7 +81,9 @@ function displayLeaderboard(rankings) {
     // entry.chapter is the main-quest number; show the book chapters the player is on.
     const bs = entry.bookChapterStart;
     const be = entry.bookChapterEnd;
-    const chapterLabel = bs == null ? 'not started' : ((be == null || be === bs) ? `Ch. ${bs}` : `Ch. ${bs}–${be}`);
+    const chapterLabel = bs == null
+      ? ((entry.questsCompleted || 0) > 0 ? 'Ch. —' : 'not started')
+      : ((be == null || be === bs) ? `Ch. ${bs}` : `Ch. ${bs}–${be}`);
     progressCell.textContent = Math.min(100, entry.questProgress || 0) + '% (' + chapterLabel + ')';
     tr.appendChild(progressCell);
 
