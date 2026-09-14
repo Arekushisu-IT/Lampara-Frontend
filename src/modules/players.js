@@ -448,7 +448,10 @@ function renderPlayerRegistry(players) {
     }
 
     const row = document.createElement('tr');
-    row.setAttribute('data-status', p.status);
+    // Tag the row with the label shown in the pill (active / suspended / pending), which
+    // is what the toolbar filters compare against. The raw status never matched two of
+    // them: suspended accounts are stored as 'banned' and pending ones as 'inactive'.
+    row.setAttribute('data-status', displayStatus.toLowerCase());
     row.innerHTML = `
       <td>
         <div class="pcell">
