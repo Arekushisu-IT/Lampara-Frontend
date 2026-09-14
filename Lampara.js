@@ -136,23 +136,9 @@ document.addEventListener('DOMContentLoaded', async function () {
   initFilters();
   initTopbarSearch();
 
-  // Attempt to restore session
-  const restored = await restoreSession();
-  if (restored) return;
-
-  // Setup default dashboard view
-  const dashNav = document.getElementById('ni-db');
-  if (dashNav) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
-    document.getElementById('panel-db').classList.add('active');
-    dashNav.classList.add('active');
-    document.getElementById('tbtit').textContent = PANEL_TITLES.db;
-  }
-
-  // Focus email input on load
-  const emailInput = document.getElementById('lemail');
-  if (emailInput) emailInput.focus();
+  // Everything below must be wired up whether or not a saved session is restored:
+  // restoring returns early, and these used to sit after that return, so a logged-in
+  // reload left the bell dead and the auto-refresh off.
 
   // Notification bell: opens the notifications box (src/modules/adminNotifications.js)
   const notifBell = document.getElementById('notif-bell');
@@ -176,4 +162,22 @@ document.addEventListener('DOMContentLoaded', async function () {
       fetchAndRenderRecentlyProcessed();
     }
   }, 15000);
+
+  // Attempt to restore session
+  const restored = await restoreSession();
+  if (restored) return;
+
+  // Setup default dashboard view
+  const dashNav = document.getElementById('ni-db');
+  if (dashNav) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.ni').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-db').classList.add('active');
+    dashNav.classList.add('active');
+    document.getElementById('tbtit').textContent = PANEL_TITLES.db;
+  }
+
+  // Focus email input on load
+  const emailInput = document.getElementById('lemail');
+  if (emailInput) emailInput.focus();
 });
