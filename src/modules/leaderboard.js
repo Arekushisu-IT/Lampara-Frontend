@@ -16,6 +16,7 @@ async function updateLeaderboard() {
       return;
     }
 
+    setTableLoading('lb-tbody');
     const response = await fetch(`${API_CONFIG.baseUrl}/leaderboard/rankings?limit=100`, {
       method: 'GET',
       headers: {
@@ -34,10 +35,12 @@ async function updateLeaderboard() {
       displayLeaderboard(data.rankings);
       updateLeaderboardStats(data);
     } else {
+      setTableMessage('lb-tbody', 'Could not load the leaderboard.', { retry: 'updateLeaderboard', error: true });
       if (typeof showT === 'function') showT('Failed to load leaderboard', 'error');
     }
   } catch (err) {
     console.error('[Leaderboard] Error:', err);
+    setTableMessage('lb-tbody', 'Could not load the leaderboard.', { retry: 'updateLeaderboard', error: true });
     if (typeof showT === 'function') showT('Error loading leaderboard: ' + err.message, 'error');
   }
 }
@@ -52,7 +55,7 @@ function displayLeaderboard(rankings) {
   tbody.innerHTML = '';
 
   if (!rankings || rankings.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b5740;padding:20px;">No players ranked yet</td></tr>';
+    setTableMessage(tbody, 'No players ranked yet');
     return;
   }
 

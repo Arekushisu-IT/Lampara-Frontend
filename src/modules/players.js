@@ -200,6 +200,7 @@ async function loadPlayerArtifacts(playerId) {
 
 /* PENDING APPROVALS */
 async function fetchAndRenderPendingApprovals() {
+  setTableLoading('pending-tbody');
   try {
     let players = await apiCall('/players');
     if (players.players) players = players.players;
@@ -214,6 +215,7 @@ async function fetchAndRenderPendingApprovals() {
     }
   } catch (err) {
     console.error('Failed to load pending approvals:', err);
+    setTableMessage('pending-tbody', 'Could not load pending approvals.', { retry: 'fetchAndRenderPendingApprovals', error: true });
     showT('Failed to load pending approvals', 'error');
   }
 }
@@ -224,7 +226,7 @@ function renderPendingTable(pending) {
   tbody.innerHTML = '';
 
   if (pending.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--td);padding:20px;">No pending approvals</td></tr>';
+    setTableMessage(tbody, 'No pending approvals');
     return;
   }
 
@@ -232,6 +234,7 @@ function renderPendingTable(pending) {
     const initials = p.name.substring(0, 2).toUpperCase();
     const section = p.email || 'Unassigned';
     const submitted = p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A';
+    const link = signupLinkText(p.token_expires_at);
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -248,7 +251,11 @@ function renderPendingTable(pending) {
       <td>${esc(section)}</td>
       <td>${esc(p.birthdate ? new Date(p.birthdate).toLocaleDateString() : '--')}</td>
       <td><span class="mono-sm gold-txt">${esc(p.username) || '—'}</span></td>
-      <td><span class="date-sm">${submitted}</span></td>
+      <td>
+        <span class="date-sm">${submitted}</span>
+        <div class="pid" style="color:${link.expired ? 'var(--danger, #e06060)' : 'var(--td)'}"
+             title="${link.expired ? 'Never verified. The email and username are freed for the next sign-up that uses them.' : 'Waiting for the player to click the emailed verification link.'}">${link.text}</div>
+      </td>
       <td>
         <button class="ab aba" onclick="approvePending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">APPROVE</button>
         <button class="ab abr" onclick="rejectPending(${p.id}, '${p.name.replace(/'/g, "\\'")}')">REJECT</button>
@@ -293,6 +300,7 @@ async function fetchAndRenderRecentlyProcessed() {
     renderProcessedTable(processed);
   } catch (err) {
     console.error('Failed to load processed approvals:', err);
+    setTableMessage('processed-tbody', 'Could not load recent decisions.', { retry: 'fetchAndRenderRecentlyProcessed', error: true });
   }
 }
 
@@ -302,7 +310,7 @@ function renderProcessedTable(processed) {
   tbody.innerHTML = '';
 
   if (processed.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--td);padding:20px;">No activity yet</td></tr>';
+    setTableMessage(tbody, 'No activity yet');
     return;
   }
 
@@ -347,9 +355,13 @@ function renderProcessedTable(processed) {
 
 /* DASHBOARD & REGISTRY PLAYERS */
 async function fetchAndRenderPlayers() {
+  setTableLoading('db-ptbody');
+  setTableLoading('ptbody');
   try {
-    let players = await apiCall('/players');
-    if (players.players) players = players.players;
+    const response = await apiCall('/players');
+    // Keep the response: stats.weeklyNew lives beside the list, and reassigning the
+    // variable to the array used to lose it (the dashboard always showed "0 this week").
+    let players = response && response.players ? response.players : response;
     if (!Array.isArray(players)) players = [];
 
     renderDashboardPlayers(players.slice(0, 5));
@@ -365,7 +377,7 @@ async function fetchAndRenderPlayers() {
     if (totalPlayersEl) totalPlayersEl.textContent = players.length;
 
     const weeklyEl = document.getElementById('stat-weekly-players');
-    if (weeklyEl) weeklyEl.textContent = `${players.stats?.weeklyNew || 0} this week`;
+    if (weeklyEl) weeklyEl.textContent = `${response?.stats?.weeklyNew || 0} this week`;
 
     const pendingEl = document.getElementById('stat-pending-approvals');
     if (pendingEl) pendingEl.textContent = pendingCount;
@@ -393,6 +405,8 @@ async function fetchAndRenderPlayers() {
     }
   } catch (err) {
     console.error('Failed to load players:', err);
+    setTableMessage('db-ptbody', 'Could not load players.', { retry: 'fetchAndRenderPlayers', error: true });
+    setTableMessage('ptbody', 'Could not load players.', { retry: 'fetchAndRenderPlayers', error: true });
     showT('Failed to load players data', 'error');
   }
 }
@@ -401,6 +415,7 @@ function renderDashboardPlayers(players) {
   const tbody = document.getElementById('db-ptbody');
   if (!tbody) return;
   tbody.innerHTML = '';
+  if (players.length === 0) { setTableMessage(tbody, 'No players registered yet'); return; }
 
   players.forEach(p => {
     const isBanned = p.status === 'banned' || p.status === 'suspended';
@@ -456,6 +471,7 @@ function renderPlayerRegistry(players) {
   const tbody = document.getElementById('ptbody');
   if (!tbody) return;
   tbody.innerHTML = '';
+  if (players.length === 0) { setTableMessage(tbody, 'No players registered yet'); return; }
 
   players.forEach(p => {
     const isBanned = p.status === 'banned' || p.status === 'suspended';

@@ -30,6 +30,7 @@ function addLog(action, admin, target, actorRole) {
 
   const tbody = document.getElementById('logtb');
   if (!tbody) return;
+  tbody.querySelectorAll('tr.table-msg').forEach(r => r.remove());
 
   const ts = formatTimestamp();
   const pillCls = LOG_PILLS[action] || 'pp';
@@ -42,13 +43,13 @@ function addLog(action, admin, target, actorRole) {
     <td><span class="mono-sm dim-txt">${ts}</span></td>
     <td><span style="font-size:11px">${admin}</span></td>
     <td><span class="pill ${pillCls} log-pill">${action}</span></td>
-    <td><span class="dim-txt" style="font-size:11px">${target}</span></td>
-    <td><span class="mono-sm dim-txt">127.0.0.1</span></td>`;
+    <td><span class="dim-txt" style="font-size:11px">${target}</span></td>`;
 
   tbody.insertBefore(row, tbody.firstChild);
 }
 
 async function fetchAndRenderLogs() {
+  setTableLoading('logtb');
   try {
     let logs = await apiCall('/logs');
     if (logs.logs) logs = logs.logs;
@@ -57,6 +58,7 @@ async function fetchAndRenderLogs() {
     renderLogTable(logs);
   } catch (err) {
     console.error('Failed to load logs:', err);
+    setTableMessage('logtb', 'Could not load activity logs.', { retry: 'fetchAndRenderLogs', error: true });
   }
 }
 
@@ -64,6 +66,7 @@ function renderLogTable(logs) {
   const tbody = document.getElementById('logtb');
   if (!tbody) return;
   tbody.innerHTML = '';
+  if (logs.length === 0) { setTableMessage(tbody, 'No activity recorded yet'); return; }
 
   logs.forEach(log => {
     const pillCls = LOG_PILLS[log.action] || 'pp';
@@ -75,10 +78,9 @@ function renderLogTable(logs) {
 
     row.innerHTML = `
       <td><span class="mono-sm dim-txt">${ts}</span></td>
-      <td><span style="font-size:11px">${log.user_id || 'System'}</span></td>
-      <td><span class="pill ${pillCls} log-pill">${log.action}</span></td>
-      <td><span class="dim-txt" style="font-size:11px">${log.description || ''}</span></td>
-      <td><span class="mono-sm dim-txt">127.0.0.1</span></td>
+      <td><span style="font-size:11px">${esc(log.user_id) || 'System'}</span></td>
+      <td><span class="pill ${pillCls} log-pill">${esc(log.action)}</span></td>
+      <td><span class="dim-txt" style="font-size:11px">${esc(log.description)}</span></td>
     `;
     tbody.appendChild(row);
   });
