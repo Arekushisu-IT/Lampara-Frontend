@@ -154,13 +154,10 @@ document.addEventListener('DOMContentLoaded', async function () {
   const emailInput = document.getElementById('lemail');
   if (emailInput) emailInput.focus();
 
-  // Notification bell click handler
+  // Notification bell: opens the notifications box (src/modules/adminNotifications.js)
   const notifBell = document.getElementById('notif-bell');
   if (notifBell) {
-    notifBell.addEventListener('click', () => {
-      const vrNavBtn = document.getElementById('ni-vr');
-      if (vrNavBtn) sp('vr', vrNavBtn);
-    });
+    notifBell.addEventListener('click', toggleAdminNotifications);
   }
 
   // Keyboard shortcut for login

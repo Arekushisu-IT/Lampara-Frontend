@@ -394,15 +394,8 @@ async function fetchAndRenderPlayers() {
     const plSuspEl = document.getElementById('stat-pl-susp');
     if (plSuspEl) plSuspEl.textContent = suspendedCount;
 
-    const badge = document.getElementById('notif-badge');
-    if (badge) {
-      if (pendingCount > 0) {
-        badge.textContent = pendingCount;
-        badge.style.display = 'block';
-      } else {
-        badge.style.display = 'none';
-      }
-    }
+    // Topbar bell: pending sign-ups and new players (src/modules/adminNotifications.js)
+    if (typeof updateAdminNotifications === 'function') updateAdminNotifications(players);
   } catch (err) {
     console.error('Failed to load players:', err);
     setTableMessage('db-ptbody', 'Could not load players.', { retry: 'fetchAndRenderPlayers', error: true });
