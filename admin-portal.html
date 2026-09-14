@@ -402,6 +402,7 @@
                   <th>Status</th>
                   <th>Progress</th>
                   <th>Current Quest</th>
+                  <th>Artifacts</th>
                   <th>Suspicion</th>
                   <th>Actions</th>
                 </tr>
@@ -561,6 +562,7 @@
                     <th>PROGRESS</th>
                     <th style="width: 80px;">FAIL #</th>
                     <th style="width: 100px;">QUESTS DONE</th>
+                    <th style="width: 90px;">ARTIFACTS</th>
                     <th style="width: 100px;">STATUS</th>
                   </tr>
                 </thead>
@@ -659,6 +661,10 @@
             <div class="mll">Current Quest</div>
             <div class="mvl" id="pm-cd">—</div>
           </div>
+        </div>
+        <div class="mfld" style="margin-top: 14px;">
+          <div class="mll">Artifacts Collected <span id="pm-art-sum" class="mono" style="margin-left: 6px;">—</span></div>
+          <div id="pm-art-list" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; margin-top: 8px; max-height: 190px; overflow-y: auto;"></div>
         </div>
         <div class="macts">
           <button class="mbtn mbok" onclick="showT('Player reinstated','success');closeM('mov-pl')">REINSTATE</button>

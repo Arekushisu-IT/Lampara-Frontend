@@ -51,6 +51,48 @@ function openPM(name, id, section, birthdate, status, chapter, suspicion, codex)
 
   document.getElementById('pmtit').textContent = name.toUpperCase() + ' — PROFILE';
   document.getElementById('mov-pl').classList.add('open');
+
+  loadPlayerArtifacts(String(id).replace(/^ID-/, ''));
+}
+
+// The player whose artifacts the profile modal is showing. Guards against a slow
+// response for a previously opened player overwriting the current one.
+let profileArtifactsFor = null;
+
+// Fills the profile modal with the player's artifact collection, in game order.
+async function loadPlayerArtifacts(playerId) {
+  const summary = document.getElementById('pm-art-sum');
+  const list = document.getElementById('pm-art-list');
+  if (!summary || !list) return;
+
+  profileArtifactsFor = playerId;
+  summary.textContent = 'loading…';
+  list.innerHTML = '';
+
+  try {
+    const data = await apiCall(`/players/${playerId}/artifacts`);
+    if (profileArtifactsFor !== playerId) return;
+
+    const artifacts = (data && data.artifacts) || [];
+    summary.textContent = `${data.collected || 0} / ${data.total || 0}`;
+
+    if (artifacts.length === 0) {
+      list.innerHTML = '<div style="color: var(--td); font-size: 11px;">No artifacts configured.</div>';
+      return;
+    }
+
+    list.innerHTML = artifacts.map(a => {
+      const label = esc(a.artifact_name || 'Unnamed artifact');
+      const where = `MQ${a.main_quest} · SQ${a.sub_quest}`;
+      return a.collected
+        ? `<div style="font-size: 11px; color: var(--goldl);" title="${esc(a.quest_title || '')}">✓ ${label} <span style="color: var(--td);">${where}</span></div>`
+        : `<div style="font-size: 11px; color: var(--td);" title="${esc(a.quest_title || '')}">○ ${label} <span>${where}</span></div>`;
+    }).join('');
+  } catch (err) {
+    if (profileArtifactsFor !== playerId) return;
+    summary.textContent = '—';
+    list.innerHTML = '<div style="color: var(--td); font-size: 11px;">Could not load artifacts.</div>';
+  }
 }
 
 /* PENDING APPROVALS */
@@ -349,6 +391,7 @@ function renderPlayerRegistry(players) {
         <div class="pbar"><div class="pfill" style="width:${progressPct}%"></div></div>
       </td>
       <td><span class="mono-sm gold-txt" style="font-size:11px;font-weight:700" title="${chapterText}">${position}</span></td>
+      <td><span class="mono-sm">${p.artifacts_collected || 0}/${p.artifacts_total || 0}</span></td>
       <td><span class="mono-sm dim-txt">${p.suspicion || 0}</span></td>
       <td>${actionHTML}</td>
     `;

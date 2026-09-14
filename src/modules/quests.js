@@ -440,6 +440,7 @@ function renderChapterQuests(mqNum) {
       </div>
       <div class="ctit">${esc(title)}</div>
       <div class="csub">${esc(description)}</div>
+      ${sub && sub.artifact_name ? `<div style="font-size: 9px; color: rgba(232, 184, 75, 0.75); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; margin: 4px 0 6px;">ARTIFACT · ${esc(sub.artifact_name)}</div>` : ''}
       <span class="pill ${statusClass}">${statusText}</span>
 
       ${sub ? `
@@ -709,14 +710,10 @@ async function openDialogueEditor(questId, questTitle, chapter, quest, subQuest)
         </div>
       </div>
       <div class="sq-artifact-field">
-        <label>AR Artifact Path</label>
-        <div class="sq-artifact-picker">
-          <input type="text" class="sq-artifact-input" id="dlg-artifact-${questId}" value="${esc(artifactPath)}" placeholder="e.g., Artifacts/SCP012_Data/SCP-012">
-          <button class="sq-artifact-save" onclick="event.stopPropagation(); saveArtifactPath(${questId}, 'dlg-artifact-${questId}')" title="Save">
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
-            </svg>
-          </button>
+        <label>Artifact (set in the game)</label>
+        <div style="padding: 8px 10px; border: 1px solid rgba(232, 184, 75, 0.25); border-radius: 4px; background: rgba(26, 22, 17, 0.6);">
+          <div style="font-family: 'Cinzel', serif; font-size: 13px; color: var(--goldl);">${esc((qObj && qObj.artifact_name) || 'No artifact')}</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--td); margin-top: 3px; word-break: break-all;">${esc(artifactPath || 'No prefab path set')}</div>
         </div>
       </div>
     `;
@@ -1061,28 +1058,6 @@ async function deleteDialogue(dialogueId) {
   }
 }
 
-async function saveArtifactPath(questId, inputId) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
-
-  const artifact_resource_path = input.value.trim();
-
-  try {
-    await apiCall(`/quests/${questId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ artifact_resource_path })
-    });
-
-    // Update local state
-    const qObj = allQuests.find(q => q.id === questId);
-    if(qObj) qObj.artifact_resource_path = artifact_resource_path;
-
-    showT('AR artifact path saved', 'success');
-  } catch (err) {
-    console.error('Failed to save artifact path:', err);
-    showT('Failed to save artifact path', 'error');
-  }
-}
 
 // Save the El Filibusterismo chapter range a sub-quest covers (1-39, From <= To).
 // The backend validates the same rules; checking here gives an immediate message.

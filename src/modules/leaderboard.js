@@ -52,7 +52,7 @@ function displayLeaderboard(rankings) {
   tbody.innerHTML = '';
 
   if (!rankings || rankings.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6b5740;padding:20px;">No players ranked yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6b5740;padding:20px;">No players ranked yet</td></tr>';
     return;
   }
 
@@ -100,6 +100,12 @@ function displayLeaderboard(rankings) {
     questsCell.style.textAlign = 'center';
     questsCell.textContent = entry.questsCompleted || 0;
     tr.appendChild(questsCell);
+
+    // ---- ARTIFACTS (collected / available) ----
+    const artifactsCell = document.createElement('td');
+    artifactsCell.style.textAlign = 'center';
+    artifactsCell.textContent = (entry.artifactsCollected || 0) + '/' + (entry.artifactsTotal || 0);
+    tr.appendChild(artifactsCell);
 
     // ---- STATUS ----
     const statusCell = document.createElement('td');
