@@ -90,7 +90,7 @@ function displayLeaderboard(rankings) {
     // ---- FAIL COUNT (game-overs, from player_quests.failure_count) ----
     const failCell = document.createElement('td');
     failCell.style.textAlign = 'center';
-    const fc = entry.failCount || 0;
+    const fc = Number(entry.failCount) || 0;  // older API builds send SUM() as a string
     failCell.textContent = fc;
     if (fc === 0) failCell.style.color = 'var(--success, #4caf50)';
     else if (fc <= 5) failCell.style.color = 'var(--warn, #ff9800)';

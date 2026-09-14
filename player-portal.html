@@ -1140,11 +1140,17 @@
           <div style="text-align:center"><div id="p-drawer-chapter" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">1</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">CHAPTER</div></div>
           <div style="text-align:center"><div id="p-drawer-progress" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">0%</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">PROGRESS</div></div>
           <div style="text-align:center"><div id="p-drawer-level" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">1</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">LEVEL</div></div>
+          <div style="text-align:center"><div id="p-drawer-artifacts" style="font-family:'Cinzel',serif;font-size:22px;color:var(--goldl)">—</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1.5px">ARTIFACTS</div></div>
         </div>
         <!-- Quest Progression -->
         <div class="section-title">QUEST CHRONICLE</div>
         <div id="drawer-progression">
           <div class="empty-state"><div class="empty-state-icon">📜</div><div class="empty-state-text">Loading...</div></div>
+        </div>
+        <!-- Artifacts -->
+        <div class="section-title" style="margin-top:20px">ARTIFACTS</div>
+        <div id="drawer-artifacts">
+          <div class="empty-state"><div class="empty-state-icon">🏺</div><div class="empty-state-text">Loading...</div></div>
         </div>
       </div>
     </div>
@@ -1181,6 +1187,7 @@
             <div style="display:flex;gap:8px;text-align:center">
               <div style="flex:1"><div id="p-chapter" style="font-family:'Cinzel',serif;font-size:20px;color:var(--goldl)">1</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1px">CHAPTER</div></div>
               <div style="flex:1"><div id="p-progress" style="font-family:'Cinzel',serif;font-size:20px;color:var(--goldl)">0%</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1px">PROGRESS</div></div>
+              <div style="flex:1"><div id="p-artifacts" style="font-family:'Cinzel',serif;font-size:20px;color:var(--goldl)">—</div><div style="font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--td);letter-spacing:1px">ARTIFACTS</div></div>
             </div>
           </div>
           <!-- Top Players -->
@@ -1304,6 +1311,40 @@
       } catch {}
     }
 
+    // Artifacts the player has found in AR (one per sub-quest), from GET /players/:id/artifacts.
+    async function fetchMyArtifacts() {
+      const res = await fetch(`${API_BASE}/players/${playerData.id}/artifacts`, { headers: { 'Authorization': `Bearer ${playerToken}` } });
+      if (!res.ok) throw new Error('artifacts ' + res.status);
+      return res.json();
+    }
+
+    async function loadArtifactCount() {
+      try {
+        const data = await fetchMyArtifacts();
+        document.getElementById('p-artifacts').textContent = `${data.collected}/${data.total}`;
+      } catch { document.getElementById('p-artifacts').textContent = '—'; }
+    }
+
+    async function loadDrawerArtifacts() {
+      const container = document.getElementById('drawer-artifacts');
+      const countEl = document.getElementById('p-drawer-artifacts');
+      try {
+        const data = await fetchMyArtifacts();
+        countEl.textContent = `${data.collected}/${data.total}`;
+        const list = data.artifacts || [];
+        if (list.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏺</div><div class="empty-state-text">No artifacts to find yet</div></div>'; return; }
+        // Undiscovered artifacts keep their names hidden, as in the in-game glossary.
+        container.innerHTML = list.map(a => `
+          <div class="quest-row">
+            <span class="quest-check ${a.collected ? 'done' : 'not'}">${a.collected ? '✓' : '○'}</span>
+            <span class="quest-label">MQ${a.main_quest} · SQ${a.sub_quest} — ${a.collected ? escHtml(a.artifact_name || 'Artifact') : 'Undiscovered'}</span>
+          </div>`).join('');
+      } catch {
+        countEl.textContent = '—';
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-text">Failed to load artifacts</div></div>';
+      }
+    }
+
     async function loadDrawerProgression() {
       const container = document.getElementById('drawer-progression');
       try {
@@ -1351,6 +1392,7 @@
       loadSidebarTop5();
       loadNotifCount();
       loadProgression();
+      loadArtifactCount();
     }
 
     // ==========================================
@@ -1395,6 +1437,7 @@
       setTimeout(() => { drawer.style.right = '0'; }, 10);
 
       loadDrawerProgression();
+      loadDrawerArtifacts();
     }
     function closeProfileDrawer() {
       const drawer = document.getElementById('profile-drawer');
