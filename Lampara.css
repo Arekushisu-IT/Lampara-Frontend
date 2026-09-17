@@ -1678,6 +1678,341 @@ tbody td {
   user-select: none;
 }
 
+/*  DASHBOARD: QUEST DIFFICULTY RANKING (Quest progress + Hardest quests)  */
+.qd-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 8fr);
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .qd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.qd-card {
+  position: relative;
+  background: var(--bgc);
+  border: 1px solid var(--bdrg);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.qd-title {
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  color: var(--goldl);
+}
+
+.qd-sub {
+  margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #7d6a50;
+}
+
+.qd-hero {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+
+.qd-hero b {
+  font-family: 'Cinzel', serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  color: #f0d090;
+  font-variant-numeric: tabular-nums;
+}
+
+.qd-hero span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ts);
+}
+
+.qd-stack {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  margin: 6px 0 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.qd-seg {
+  height: 100%;
+  min-width: 4px;
+}
+
+.qd-seg-empty {
+  flex: 1;
+  background: var(--bdrg);
+}
+
+.qd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ts);
+}
+
+.qd-sw {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.qd-div {
+  height: 1px;
+  margin: 14px 0;
+  background: var(--bdr);
+}
+
+.qd-go {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.qd-go b {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--tp);
+  font-variant-numeric: tabular-nums;
+}
+
+.qd-lab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: #7d6a50;
+}
+
+.qd-lab-head {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.qd-mq {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  margin: 5px 0;
+}
+
+.qd-mq-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ts);
+}
+
+.qd-mq-track {
+  height: 9px;
+}
+
+.qd-mq-bar {
+  height: 9px;
+  min-width: 0;
+  background: #b8893a;
+  border-radius: 0 4px 4px 0;
+}
+
+.qd-mq-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-align: right;
+  color: var(--tp);
+  font-variant-numeric: tabular-nums;
+}
+
+.qd-mq-val.zero {
+  color: #4a3a1c;
+}
+
+.qd-hard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.qd-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qd-toggle {
+  display: inline-flex;
+  border: 1px solid var(--bdrg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.qd-toggle button {
+  padding: 5px 9px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: #7d6a50;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.qd-toggle button[aria-pressed="true"] {
+  color: var(--goldl);
+  background: rgba(201, 149, 58, .16);
+}
+
+.qd-refresh {
+  padding: 5px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--goldl);
+  background: transparent;
+  border: 1px solid var(--goldd);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.qd-refresh:hover {
+  border-color: var(--gold);
+  background: rgba(201, 149, 58, .1);
+}
+
+.qd-toggle button:focus-visible,
+.qd-refresh:focus-visible,
+.qd-row:focus-visible {
+  outline: 2px solid var(--goldl);
+  outline-offset: -2px;
+}
+
+.qd-rows {
+  margin-top: 10px;
+}
+
+.qd-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 210px) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #211a10;
+  outline: none;
+}
+
+.qd-row:last-child {
+  border-bottom: 0;
+}
+
+.qd-row-label {
+  min-width: 0;
+}
+
+.qd-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--goldl);
+}
+
+.qd-name {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px;
+  color: var(--tp);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qd-track {
+  display: flex;
+  align-items: center;
+  height: 22px;
+}
+
+.qd-bar {
+  height: 14px;
+  min-width: 2px;
+  background: #b5503f;
+  border-radius: 0 4px 4px 0;
+  transition: width .35s ease, background .15s;
+}
+
+.qd-row:hover .qd-bar,
+.qd-row:focus-visible .qd-bar {
+  background: #c86251;
+}
+
+.qd-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  text-align: right;
+  color: var(--tp);
+  font-variant-numeric: tabular-nums;
+}
+
+.qd-note {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--td);
+}
+
+.qd-empty {
+  padding: 18px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--td);
+}
+
+.qd-error {
+  color: #e06060;
+}
+
+.qd-tip {
+  position: absolute;
+  z-index: 5;
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #c9b08a;
+  white-space: nowrap;
+  background: #0c0a06;
+  border: 1px solid var(--goldd);
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s;
+}
+
+.qd-tip b {
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f0d090;
+}
+
 /*  QUEST HIERARCHY
     Bottom-up tree on the page's own background (body glow + cross pattern). */
 .qh-wrap {

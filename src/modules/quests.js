@@ -910,161 +910,164 @@ function updateQuestStats(quests) {
 }
 
 // ============================================================
-// QUEST DIFFICULTY / FAILURE STATS (Chart.js)
+// DASHBOARD: QUEST DIFFICULTY RANKING
+// Quest progress (attempts by status, game-overs, attempts per main quest) and the
+// hardest quests (top 5 by total game-overs, or game-overs per attempt).
+// Plain HTML, no chart library.
 // ============================================================
 
-let qsDoughnutChart = null;
-let qsBarChart = null;
 function toStatNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-// Quest attempt overview (doughnut) and the five quests with the most game-overs
-// (bar). Both used to show hardcoded numbers: the bar chart always, the doughnut
-// whenever the request failed. On failure the charts now render empty instead.
+const QD_COLORS = { completed: '#3d8756', inProgress: '#b8893a' };  // validated pair (dark surface)
+const QD_MIN_RATE_ATTEMPTS = 3;  // per-attempt ranking ignores quests tried fewer times
+
+let qdStats = [];
+let qdMode = 'total';
+
 async function fetchAndRenderQuestStats() {
+  const rows = document.getElementById('qd-rows');
+  if (rows && qdStats.length === 0) rows.innerHTML = '<div class="qd-empty">Loading quest statistics...</div>';
   try {
     const data = await apiCall('/quests/quest-stats');
-    const stats = data.stats || [];
-
-    let totalCompleted = 0, totalFailed = 0, totalInProgress = 0;
-    stats.forEach(s => {
-      totalCompleted += toStatNumber(s.completed);
-      totalFailed += toStatNumber(s.failed);
-      totalInProgress += toStatNumber(s.in_progress);
-    });
-    renderDoughnut(totalCompleted, totalFailed, totalInProgress, totalCompleted + totalFailed + totalInProgress);
-
-    const top = stats
-      .filter(s => toStatNumber(s.game_overs) > 0)
-      .sort((a, b) => toStatNumber(b.game_overs) - toStatNumber(a.game_overs))
-      .slice(0, 5);
-
-    renderBarChart(
-      top.map(s => {
-        const cs = s.chapter_start, ce = s.chapter_end;
-        const ch = cs == null ? '' : ((ce == null || ce === cs) ? ` · Ch.${cs}` : ` · Ch.${cs}-${ce}`);
-        return `MQ${s.main_quest} SQ${s.sub_quest}${ch}`;
-      }),
-      top.map(s => toStatNumber(s.game_overs)),
-      top.map(s => ` ${s.title}: ${toStatNumber(s.game_overs)} game-overs · ${toStatNumber(s.attempts)} players · ${toStatNumber(s.completed)} completed`)
-    );
+    qdStats = (data.stats || []).map(s => ({
+      mq: toStatNumber(s.main_quest),
+      sq: toStatNumber(s.sub_quest),
+      chStart: s.chapter_start,
+      chEnd: s.chapter_end,
+      title: s.title || `MQ${s.main_quest} SQ${s.sub_quest}`,
+      attempts: toStatNumber(s.attempts),
+      completed: toStatNumber(s.completed),
+      inProgress: toStatNumber(s.in_progress),
+      gameOvers: toStatNumber(s.game_overs)
+    }));
+    renderQuestProgress(qdStats, data.totals || {});
+    renderHardestQuests();
   } catch (err) {
     console.error('Failed to load quest stats:', err);
-    renderDoughnut(0, 0, 0, 0);
-    renderBarChart([], [], []);
+    if (rows) {
+      rows.innerHTML = '<div class="qd-empty qd-error">Could not load quest statistics. <button type="button" class="qd-refresh" onclick="fetchAndRenderQuestStats()">RETRY</button></div>';
+    }
     showT('Could not load quest statistics', 'error');
   }
 }
 
-function renderDoughnut(completed, failed, inProgress, total) {
-  const canvas = document.getElementById('qs-doughnut');
-  if (!canvas || typeof Chart === 'undefined') return;
+function qdChapters(s) {
+  if (s.chStart == null) return '';
+  return (s.chEnd == null || s.chEnd === s.chStart) ? `Ch.${s.chStart}` : `Ch.${s.chStart}–${s.chEnd}`;
+}
 
-  if (qsDoughnutChart) qsDoughnutChart.destroy();
-  qsDoughnutChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Completed', 'Failed', 'In Progress'],
-      datasets: [{
-        data: [completed, failed, inProgress],
-        backgroundColor: ['#4a9e5c', '#c0392b', '#e8b84b'],
-        borderColor: 'transparent',
-        borderWidth: 0,
-        hoverOffset: 8
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true, cutout: '70%',
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1A1511', borderColor: 'rgba(201,149,58,0.3)', borderWidth: 1,
-          titleColor: '#e8b84b', bodyColor: '#f0d090',
-          bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
-          callbacks: {
-            label: function(ctx) {
-              const val = ctx.raw;
-              const pct = total > 0 ? Math.round(val / total * 100) : 0;
-              return ` ${val} (${pct}%)`;
-            }
-          }
-        }
-      }
-    },
-    plugins: [{
-      id: 'centerText',
-      beforeDraw(chart) {
-        const { width, height, ctx: c } = chart;
-        c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.font = "700 14px 'Cinzel', serif"; c.fillStyle = '#f0d090';
-        c.fillText('TOTAL ATTEMPTS', width / 2, height / 2 - 14);
-        c.font = "900 28px 'Cinzel', serif";
-        c.fillText(total, width / 2, height / 2 + 12);
-        c.restore();
-      }
-    }]
-  });
+function renderQuestProgress(stats, totals) {
+  const attempts = stats.reduce((n, s) => n + s.attempts, 0);
+  const completed = stats.reduce((n, s) => n + s.completed, 0);
+  const inProgress = stats.reduce((n, s) => n + s.inProgress, 0);
+  const gameOvers = stats.reduce((n, s) => n + s.gameOvers, 0);
+  const players = toStatNumber(totals.players);
+  const pct = v => (attempts > 0 ? Math.round(v / attempts * 100) : 0);
 
-  // Update legend items with percentages
-  const container = canvas.parentElement.parentElement;
-  const legendDiv = container.querySelector('div[style*="display:flex;gap"]');
-  if (legendDiv && legendDiv.children.length === 3) {
-    const pctArr = [completed, failed, inProgress].map(v => total > 0 ? Math.round(v / total * 100) : 0);
-    const pcts = pctArr.map((p, i) => `${p}%`);
-    const items = legendDiv.children;
-    if (items.length >= 3) {
-      items[0].textContent = `Completed ${pcts[0]}`;
-      items[1].textContent = `Failed ${pcts[1]}`;
-      items[2].textContent = `In Progress ${pcts[2]}`;
-    }
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  set('qd-attempts', String(attempts));
+  set('qd-attempts-sub', `attempts · ${players} player${players === 1 ? '' : 's'}`);
+  set('qd-gameovers', String(gameOvers));
+  set('qd-rate', attempts > 0 ? (gameOvers / attempts).toFixed(2) : '0.00');
+
+  const stack = document.getElementById('qd-stack');
+  if (stack) {
+    stack.setAttribute('aria-label', `${completed} completed, ${inProgress} in progress`);
+    stack.innerHTML = attempts === 0
+      ? '<div class="qd-seg qd-seg-empty"></div>'
+      : [
+          completed ? `<div class="qd-seg" style="flex:${completed};background:${QD_COLORS.completed}" title="Completed · ${completed} (${pct(completed)}%)"></div>` : '',
+          inProgress ? `<div class="qd-seg" style="flex:${inProgress};background:${QD_COLORS.inProgress}" title="In progress · ${inProgress} (${pct(inProgress)}%)"></div>` : ''
+        ].join('');
+  }
+
+  const legend = document.getElementById('qd-legend');
+  if (legend) {
+    legend.innerHTML = `
+      <span><i class="qd-sw" style="background:${QD_COLORS.completed}"></i>Completed ${completed} · ${pct(completed)}%</span>
+      <span><i class="qd-sw" style="background:${QD_COLORS.inProgress}"></i>In progress ${inProgress} · ${pct(inProgress)}%</span>`;
+  }
+
+  const mqEl = document.getElementById('qd-mq');
+  if (mqEl) {
+    const byMq = [1, 2, 3, 4, 5, 6, 7].map(m => stats.filter(s => s.mq === m).reduce((n, s) => n + s.attempts, 0));
+    const max = Math.max(1, ...byMq);
+    mqEl.innerHTML = byMq.map((v, i) => `
+      <div class="qd-mq">
+        <span class="qd-mq-code">MQ${i + 1}</span>
+        <div class="qd-mq-track"><div class="qd-mq-bar" style="width:${v ? Math.max(2, v / max * 100) : 0}%"></div></div>
+        <span class="qd-mq-val${v ? '' : ' zero'}">${v}</span>
+      </div>`).join('');
   }
 }
 
-function renderBarChart(labels, values, tooltips) {
-  const canvas = document.getElementById('qs-bar');
-  if (!canvas || typeof Chart === 'undefined') return;
+function setHardestQuestsMode(mode) {
+  qdMode = mode === 'rate' ? 'rate' : 'total';
+  renderHardestQuests();
+}
 
-  if (qsBarChart) qsBarChart.destroy();
-  qsBarChart = new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: 'rgba(192, 57, 43, 0.7)',
-        borderColor: 'rgba(192, 57, 43, 0.9)',
-        borderWidth: 1,
-        borderRadius: 3,
-        barThickness: 20
-      }]
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1A1511', borderColor: 'rgba(201,149,58,0.3)', borderWidth: 1,
-          titleColor: '#e8b84b', bodyColor: '#f0d090',
-          bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
-          callbacks: {
-            label: function(ctx) { return tooltips[ctx.dataIndex] || ` ${ctx.raw} game-overs`; }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(201,149,58,0.08)' },
-          ticks: { color: '#6b5740', font: { family: "'JetBrains Mono', monospace", size: 10 } },
-          title: { display: true, text: 'GAME-OVERS', color: '#6b5740', font: { family: "'Cinzel', serif", size: 9, weight: 700 } }
-        },
-        y: {
-          grid: { display: false },
-          ticks: { color: '#f0d090', font: { family: "'JetBrains Mono', monospace", size: 10 } }
-        }
-      }
-    }
+function renderHardestQuests() {
+  const rows = document.getElementById('qd-rows');
+  const sub = document.getElementById('qd-hard-sub');
+  const tip = document.getElementById('qd-tip');
+  if (!rows) return;
+  const rate = qdMode === 'rate';
+
+  const totalBtn = document.getElementById('qd-mode-total');
+  const rateBtn = document.getElementById('qd-mode-rate');
+  if (totalBtn) totalBtn.setAttribute('aria-pressed', String(!rate));
+  if (rateBtn) rateBtn.setAttribute('aria-pressed', String(rate));
+  if (sub) {
+    sub.textContent = rate
+      ? `Game-overs per attempt · quests with ${QD_MIN_RATE_ATTEMPTS}+ attempts`
+      : 'Top 5 sub-quests by total game-overs';
+  }
+
+  const list = qdStats
+    .filter(s => (rate ? s.attempts >= QD_MIN_RATE_ATTEMPTS && s.gameOvers > 0 : s.gameOvers > 0))
+    .map(s => ({ s, v: rate ? s.gameOvers / s.attempts : s.gameOvers }))
+    .sort((a, b) => b.v - a.v || b.s.attempts - a.s.attempts || a.s.mq - b.s.mq || a.s.sq - b.s.sq)
+    .slice(0, 5);
+
+  if (tip) tip.style.opacity = '0';
+  if (list.length === 0) {
+    rows.innerHTML = '<div class="qd-empty">No game-overs recorded yet.</div>';
+    return;
+  }
+
+  const max = rate ? Math.max(1, ...list.map(x => x.v)) : Math.max(...list.map(x => x.v));
+  rows.innerHTML = list.map((x, i) => `
+    <div class="qd-row" tabindex="0" data-i="${i}">
+      <div class="qd-row-label">
+        <div class="qd-code">MQ${x.s.mq} SQ${x.s.sq}${qdChapters(x.s) ? ` · ${qdChapters(x.s)}` : ''}</div>
+        <div class="qd-name">${esc(x.s.title)}</div>
+      </div>
+      <div class="qd-track"><div class="qd-bar" style="width:${Math.max(2, x.v / max * 100)}%"></div></div>
+      <div class="qd-val">${rate ? x.v.toFixed(2) : x.v}</div>
+    </div>`).join('');
+
+  const card = rows.closest('.qd-card');
+  rows.querySelectorAll('.qd-row').forEach(row => {
+    const s = list[Number(row.dataset.i)].s;
+    const show = e => {
+      if (!tip || !card) return;
+      tip.innerHTML = `<b>${esc(s.title)}</b><br>MQ${s.mq} · SQ${s.sq}${s.chStart != null ? ` · Ch. ${s.chEnd != null && s.chEnd !== s.chStart ? `${s.chStart}–${s.chEnd}` : s.chStart}` : ''}<br>${s.attempts} attempts · ${s.completed} completed<br>${s.gameOvers} game-overs · ${(s.attempts ? s.gameOvers / s.attempts : 0).toFixed(2)} per attempt`;
+      tip.style.opacity = '1';
+      const cr = card.getBoundingClientRect();
+      const rr = row.getBoundingClientRect();
+      const x = e && e.clientX ? e.clientX : rr.left + rr.width / 2;
+      const left = Math.min(x - cr.left + 12, cr.width - tip.offsetWidth - 8);
+      tip.style.left = `${Math.max(8, left)}px`;
+      tip.style.top = `${rr.bottom - cr.top + 4}px`;
+    };
+    row.addEventListener('mousemove', show);
+    row.addEventListener('focus', () => show());
+    const hide = () => { if (tip) tip.style.opacity = '0'; };
+    row.addEventListener('mouseleave', hide);
+    row.addEventListener('blur', hide);
   });
 }
 

@@ -10,7 +10,6 @@
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="Lampara.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -309,40 +308,42 @@
             <h2>QUEST DIFFICULTY RANKING</h2>
             <div class="orn"></div>
           </div>
-          <div style="display:grid;grid-template-columns:280px 1fr;gap:1rem;margin-top:1rem;">
-            <!-- LEFT: Doughnut Chart -->
-            <div
-              style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;display:flex;flex-direction:column;align-items:center;">
-              <div
-                style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);margin-bottom:1rem;text-align:center;width:100%;">
-                TOTAL QUEST ATTEMPTS OVERVIEW</div>
-              <div style="position:relative;width:200px;height:200px;">
-                <canvas id="qs-doughnut"></canvas>
+          <div class="qd-grid">
+            <!-- LEFT: Quest progress (quests.js renderQuestProgress) -->
+            <section class="qd-card" aria-labelledby="qd-progress-title">
+              <p class="qd-title" id="qd-progress-title">QUEST PROGRESS</p>
+              <div class="qd-sub">Every sub-quest a player has started</div>
+              <div class="qd-hero"><b id="qd-attempts">—</b><span id="qd-attempts-sub">attempts</span></div>
+              <div class="qd-stack" id="qd-stack" role="img" aria-label="Quest attempts by status"></div>
+              <div class="qd-legend" id="qd-legend"></div>
+              <div class="qd-div"></div>
+              <div class="qd-go">
+                <div><b id="qd-gameovers">—</b><span class="qd-lab">GAME-OVERS</span></div>
+                <div><b id="qd-rate">—</b><span class="qd-lab">PER ATTEMPT</span></div>
               </div>
-              <div style="display:flex;gap:1rem;margin-top:1.25rem;">
-                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span
-                    style="width:10px;height:10px;border-radius:2px;background:#4a9e5c;display:inline-block;"></span>Completed</span>
-                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span
-                    style="width:10px;height:10px;border-radius:2px;background:#c0392b;display:inline-block;"></span>Failed</span>
-                <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--td);"><span
-                    style="width:10px;height:10px;border-radius:2px;background:#e8b84b;display:inline-block;"></span>In
-                  Progress</span>
+              <div class="qd-div"></div>
+              <div class="qd-lab qd-lab-head">ATTEMPTS BY MAIN QUEST</div>
+              <div id="qd-mq"></div>
+            </section>
+            <!-- RIGHT: Hardest quests (quests.js renderHardestQuests) -->
+            <section class="qd-card qd-hard" aria-labelledby="qd-hard-title">
+              <div class="qd-hard-head">
+                <div>
+                  <p class="qd-title" id="qd-hard-title">HARDEST QUESTS</p>
+                  <div class="qd-sub" id="qd-hard-sub">Top 5 sub-quests by total game-overs</div>
+                </div>
+                <div class="qd-tools">
+                  <div class="qd-toggle" role="group" aria-label="Measure">
+                    <button type="button" id="qd-mode-total" aria-pressed="true" onclick="setHardestQuestsMode('total')">TOTAL</button>
+                    <button type="button" id="qd-mode-rate" aria-pressed="false" onclick="setHardestQuestsMode('rate')">PER ATTEMPT</button>
+                  </div>
+                  <button type="button" class="qd-refresh" onclick="fetchAndRenderQuestStats()">REFRESH</button>
+                </div>
               </div>
-            </div>
-            <!-- RIGHT: Horizontal Bar Chart -->
-            <div
-              style="background:rgba(26,22,17,0.6);border:1px solid rgba(201,149,58,0.15);border-radius:6px;padding:1.25rem;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-                <div
-                  style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--goldl);">
-                  TOP 5 QUESTS BY GAME-OVERS</div>
-                <button class="fb active" onclick="fetchAndRenderQuestStats()"
-                  style="font-size:9px;padding:3px 10px;letter-spacing:2px;">REFRESH</button>
-              </div>
-              <div style="position:relative;width:100%;height:250px;">
-                <canvas id="qs-bar"></canvas>
-              </div>
-            </div>
+              <div id="qd-rows" class="qd-rows"></div>
+              <div class="qd-note">Hover a quest for attempts and completions.</div>
+              <div class="qd-tip" id="qd-tip" role="tooltip"></div>
+            </section>
           </div>
         </div>
 
