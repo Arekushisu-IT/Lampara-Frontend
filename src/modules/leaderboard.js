@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof API_CONFIG !== 'undefined' && API_CONFIG.baseUrl) {
       clearInterval(waitForConfig);
       const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-      const panel = document.getElementById('panel-lb') || document.getElementById('panel-gs');
+      const panel = document.getElementById('panel-lb');
       if (panel && token) updateLeaderboard();
     } else if (++attempts > 50) {
       clearInterval(waitForConfig);

@@ -725,6 +725,35 @@ input:-webkit-autofill:active {
   transition: color .2s;
 }
 
+/* Two-line nav item (Game Management: quests + game settings) */
+.nt-group {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nt-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .5px;
+  color: var(--goldd);
+  transition: color .2s;
+}
+
+.ni.active .nt-sub {
+  color: #b8892f;
+}
+
+#ni-qt {
+  align-items: flex-start;
+}
+
+#ni-qt .nic,
+#ni-qt .nb {
+  margin-top: 2px;
+}
+
 .nb {
   font-family: 'JetBrains Mono', monospace;
   font-size: 8px;
@@ -748,6 +777,53 @@ input:-webkit-autofill:active {
   font-family: 'JetBrains Mono', monospace;
   letter-spacing: .5px;
   line-height: 1.8;
+}
+
+/* Live server light (serverStatus.js) */
+.srv {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ts);
+}
+
+.srv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--td);
+  box-shadow: 0 0 0 3px rgba(107, 87, 64, .18);
+  transition: background .3s, box-shadow .3s;
+}
+
+.srv[data-state="ok"] .srv-dot {
+  background: #6dba85;
+  box-shadow: 0 0 0 3px rgba(109, 186, 133, .15);
+}
+
+.srv[data-state="slow"] .srv-dot {
+  background: #e0a040;
+  box-shadow: 0 0 0 3px rgba(224, 160, 64, .15);
+}
+
+.srv[data-state="down"] .srv-dot {
+  background: #e06060;
+  box-shadow: 0 0 0 3px rgba(224, 96, 96, .15);
+}
+
+.sbver {
+  margin: 3px 0 2px;
+}
+
+.ver-chip {
+  display: inline-block;
+  padding: 0 7px;
+  border: 1px solid var(--bdrg);
+  border-radius: 10px;
+  color: var(--gold);
+  background: rgba(201, 149, 58, .08);
+  line-height: 1.6;
 }
 
 /*  MAIN AREA  */
@@ -3070,8 +3146,95 @@ select.ai option {
   box-shadow: 0 0 10px rgba(201, 149, 58, .2);
 }
 
-.gs-input::-webkit-inner-spin-button {
-  opacity: .3;
+/* The browser's own spinner is replaced by the gold arrows (.gs-stepper) */
+.gs-input::-webkit-inner-spin-button,
+.gs-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.gs-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.gs-num {
+  display: flex;
+  align-items: stretch;
+  height: 48px;
+  border: 1px solid var(--bdrg);
+  border-radius: 4px;
+  background: var(--bgc);
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.gs-num:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(201, 149, 58, .2);
+}
+
+.gs-num .gs-input {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.gs-num .gs-input:focus {
+  box-shadow: none;
+}
+
+.gs-stepper {
+  display: flex;
+  flex-direction: column;
+  width: 26px;
+  border-left: 1px solid var(--bdrg);
+  background: #1a150d;
+}
+
+.gs-step {
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #1a150d;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.gs-step + .gs-step {
+  border-top: 1px solid var(--bdrg);
+}
+
+.gs-step svg {
+  display: block;
+  width: 10px;
+  height: 7px;
+}
+
+.gs-step svg polygon {
+  fill: var(--gold);
+  transition: fill .15s;
+}
+
+.gs-step:hover {
+  background: #2a200e;
+}
+
+.gs-step:hover svg polygon {
+  fill: #f0d090;
+}
+
+.gs-step:focus-visible {
+  outline: 2px solid var(--goldl);
+  outline-offset: -2px;
 }
 
 .gs-unit {
@@ -3137,6 +3300,147 @@ select.ai option {
 .gs-reset-btn:hover {
   border-color: var(--crim);
   color: #e06060;
+}
+
+/*  GAME SETTINGS DRAWER (Game Management page)  */
+#panel-qt {
+  position: relative;
+}
+
+.qh-settings-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--goldl);
+  background: rgba(201, 149, 58, .1);
+  border: 1px solid var(--goldd);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .2s, border-color .2s;
+}
+
+.qh-settings-btn:hover,
+.qh-settings-btn[aria-expanded="true"] {
+  background: rgba(201, 149, 58, .2);
+  border-color: var(--gold);
+}
+
+.qh-settings-btn:focus-visible,
+.gs-close:focus-visible {
+  outline: 2px solid var(--goldl);
+  outline-offset: 2px;
+}
+
+.gs-veil {
+  position: absolute;
+  inset: -8px;
+  z-index: 20;
+  border-radius: 8px;
+  background: rgba(10, 8, 5, .6);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .3s ease, visibility .3s ease;
+}
+
+#panel-qt.gs-open .gs-veil {
+  opacity: 1;
+  visibility: visible;
+}
+
+#panel-qt.gs-open .qh-stage {
+  opacity: .35;
+}
+
+.gs-drawer {
+  position: fixed;
+  top: var(--gs-top, 54px);
+  right: 0;
+  bottom: 0;
+  z-index: 85;
+  width: min(440px, calc(100vw - 24px));
+  overflow-y: auto;
+  padding: 18px 18px 20px;
+  background: var(--bgp);
+  border-left: 1px solid var(--bdrg);
+  box-shadow: -24px 0 60px rgba(0, 0, 0, .5);
+  transform: translateX(104%);
+  visibility: hidden;
+  transition: transform .38s cubic-bezier(.2, .9, .3, 1), visibility .38s;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bdrg) transparent;
+}
+
+.gs-drawer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, var(--gold), transparent);
+  opacity: .45;
+}
+
+#panel-qt.gs-open .gs-drawer {
+  transform: none;
+  visibility: visible;
+}
+
+.gs-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.gs-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.gs-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--bdrg);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ts);
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+
+.gs-close:hover {
+  border-color: var(--gold);
+  color: var(--goldl);
+}
+
+.gs-drawer .gs-section {
+  padding: 0;
+  background: none;
+  border: none;
+  overflow: visible;
+}
+
+.gs-drawer .gs-section::before {
+  display: none;
+}
+
+.gs-drawer .gs-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 480px) {
+  .gs-drawer .gs-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================================
